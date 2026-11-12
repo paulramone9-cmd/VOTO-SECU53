@@ -586,7 +586,7 @@
             enteredVoterName: '',
             selectedCandidate: null,
             adminPIN: localStorage.getItem('bue_admin_pin') || '1234',
-            sheetsUrl: localStorage.getItem('bue_sheets_url') || 'https://script.google.com/macros/s/AKfycbww3OvkGDbXy6xrc7aBe9lS9oCde7JaEc41fy3YzHdq82hKw22FuVU_WX19S4WanIST/exec',
+            sheetsUrl: localStorage.getItem('bue_sheets_url') || 'https://script.google.com/macros/s/AKfycbw2CJAFn9NvbdEqYg0x9y_nYAU1ihkR9gr1XN66Ao6eY__mM9-ZNiVAVnn_8jTklup9/exec',
             schoolLogo: localStorage.getItem('bue_school_logo') || 'logo transp - copia.jpg',
             schoolName: localStorage.getItem('bue_school_name') || 'Colegio Secundario de Artes N° 49 • Tilcara',
             schoolColors: JSON.parse(localStorage.getItem('bue_school_colors') || '{"primary":"#0070BA","header":"#0062a8","accent":"#e63946"}'),
@@ -1463,7 +1463,7 @@
                 dni: dni,
                 nombre: voterName,
                 lista: listaElegida,
-                timestamp: timestamp,
+                timestamp: new Date().toISOString(),
                 hash: hash
             };
 
@@ -1516,23 +1516,53 @@
         }
 
         function sendToGoogleSheets(payload) {
-            if (!appState.sheetsUrl) return;
-            const formData = new URLSearchParams();
-            formData.append('dni', payload.dni);
-            formData.append('nombre', payload.nombre);
-            formData.append('lista', payload.lista);
-            formData.append('timestamp', payload.timestamp);
+            if (!appState.sheetsUrl) {
+                console.warn('Google Sheets no está configurado. El voto quedó guardado localmente.');
+                return;
+            }
 
-            fetch(appState.sheetsUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-                body: formData.toString()
-            }).then(() => {
-                console.log('Solicitud de sincronización enviada a Google Sheets.');
-            }).catch(err => {
-                console.error('No se pudo enviar el registro a Google Sheets:', err);
+            // Envío mediante formulario HTML a un iframe oculto. Evita depender
+            // de la lectura CORS de la respuesta de Apps Script.
+            let iframe = document.getElementById('google-sheets-submit-frame');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.name = 'google-sheets-submit-frame';
+                iframe.id = 'google-sheets-submit-frame';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = appState.sheetsUrl;
+            form.target = iframe.name;
+            form.acceptCharset = 'UTF-8';
+            form.style.display = 'none';
+
+            const fields = {
+                dni: payload.dni,
+                nombre: payload.nombre,
+                lista: payload.lista,
+                timestamp: payload.timestamp
+            };
+            Object.entries(fields).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = String(value ?? '');
+                form.appendChild(input);
             });
+
+            document.body.appendChild(form);
+            try {
+                form.submit();
+                console.info('Formulario de voto enviado al endpoint de Google Apps Script.');
+            } catch (error) {
+                console.error('No se pudo enviar el voto a Google Sheets:', error);
+                alert('No se pudo enviar el registro a Google Sheets. El voto quedó guardado en esta computadora.');
+            } finally {
+                setTimeout(() => form.remove(), 3000);
+            }
         }
 
         window.processPadronText = function() {
