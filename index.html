@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-200 selection:bg-sky-500 selection:text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleta Única Electrónica - Centro de Estudiantes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js para estadísticas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS para exportar Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- PDF.js para lectura de Padrón en PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- jsPDF para exportar Acta en PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Arial', 'Helvetica', 'sans-serif'],
+                        mono: ['Courier New', 'monospace'],
+                    },
+                    colors: {
+                        bue: {
+                            blue: '#0070BA',
+                            darkBlue: '#005596',
+                            header: '#0062a8',
+                            lightGray: '#eef2f5',
+                            border: '#b8c4ce',
+                            accent: '#e63946'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #dbe2e8;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .bue-frame {
+            background-color: #f4f7f9;
+            border: 4px solid #a2b3c2;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+        }
+
+        .bue-card {
+            background: #ffffff;
+            border: 2px solid #b2c1ce;
+            border-radius: 12px;
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .bue-card:hover, .bue-card:active {
+            border-color: #0070BA;
+            box-shadow: 0 0 20px rgba(0, 112, 186, 0.4);
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .bue-card-header {
+            padding: 8px 12px;
+            color: #ffffff;
+            font-weight: 900;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .bue-btn-primary {
+            background: linear-gradient(180deg, #007ccb 0%, #005f9e 100%);
+            border: 1px solid #004d80;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+
+        .bue-btn-blank {
+            background: linear-gradient(180deg, #009be3 0%, #007bc4 100%);
+            border: 1px solid #0066a3;
+        }
+
+        .numpad-btn {
+            background: #ffffff;
+            border: 2px solid #b0c0cf;
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #1e293b;
+            border-radius: 8px;
+            box-shadow: 0 3px 0 #92a4b5;
+            cursor: pointer;
+        }
+        .numpad-btn:active {
+            box-shadow: none;
+            transform: translateY(3px);
+            background: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+
+    <div class="bue-frame max-w-6xl w-full min-h-[92vh] flex flex-col justify-between overflow-hidden relative shadow-2xl">
+
+        <!-- CABECERA INSTITUCIONAL CON LOGO Y NOMBRE DEL COLEGIO -->
+        <header class="bg-bue-header text-white px-4 py-2.5 flex justify-between items-center border-b-2 border-bue-darkBlue">
+            <div class="flex items-center gap-3">
+                <div id="school-logo-container" class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
+                    <img id="school-logo-img" src="logo transp - copia.jpg" alt="Logo Colegio" onerror="this.onerror=null; this.src='https://placehold.co/100x100/0062a8/ffffff?text=ESC';" class="max-w-full max-h-full object-contain">
+                </div>
+                <div class="flex flex-col justify-center">
+                    <span class="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-sky-200 block leading-tight mb-0.5">Colegio Secundario de Artes N° 49 • Tilcara</span>
+                    <h1 class="text-base sm:text-lg md:text-xl font-black uppercase tracking-tight leading-tight">Elecciones Centro de Estudiantes</h1>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div id="network-status-badge" class="px-2.5 py-1 rounded bg-sky-900/80 text-white border border-sky-400/30 text-xs font-bold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="network-status-text">ONLINE</span>
+                </div>
+
+                <button type="button" id="btn-admin-trigger" onclick="openAdminAuthModal()" class="bg-sky-950 hover:bg-black text-white border border-sky-700 px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1.5 uppercase transition cursor-pointer z-10">
+                    <i class="fa-solid fa-lock text-amber-400"></i>
+                    <span class="hidden md:inline">Autoridad Mesa</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- SUB-CABECERA -->
+        <div class="bg-slate-300 border-b border-slate-400 px-4 py-2 flex justify-between items-center text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wide">
+            <span class="flex items-center gap-2">
+                <i class="fa-solid fa-user-check text-bue-blue text-base"></i> Cargo: Centro de Estudiantes
+            </span>
+            <span id="bue-status-step" class="text-bue-blue font-black uppercase bg-white px-3 py-1 rounded-full border border-slate-400 shadow-sm">
+                Paso 1: Acreditación de DNI
+            </span>
+        </div>
+
+        <main class="flex-grow p-4 sm:p-6 flex flex-col justify-center bg-slate-100 relative">
+
+            <!-- VISTA 1: INGRESO DNI -->
+            <section id="login-view" class="max-w-xl w-full mx-auto my-auto space-y-4">
+                <div class="bg-white p-6 rounded-xl border-2 border-slate-300 shadow-md text-center space-y-4">
+                    <div class="bg-sky-50 border border-sky-200 text-bue-blue p-3 rounded-lg text-sm font-bold uppercase">
+                        <i class="fa-solid fa-id-card text-lg mr-2"></i> Ingrese su número de DNI para habilitar la votación
+                    </div>
+
+                    <div class="relative max-w-xs mx-auto">
+                        <input type="text" id="dni-input" readonly placeholder="00000000" 
+                            class="w-full text-center text-3xl font-black font-mono tracking-widest bg-slate-50 border-2 border-bue-blue text-slate-800 rounded-lg py-2 outline-none shadow-inner">
+                        <button type="button" onclick="clearDNIInput()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-2 text-sm font-bold cursor-pointer">
+                            <i class="fa-solid fa-circle-xmark text-xl"></i>
+                        </button>
+                    </div>
+
+                    <div id="dni-error" class="hidden text-rose-700 text-xs bg-rose-100 border-2 border-rose-400 p-3 rounded-lg font-black flex items-center justify-center gap-2 shadow-sm animate-bounce">
+                        <i class="fa-solid fa-circle-exclamation text-lg text-rose-600"></i>
+                        <span id="dni-error-msg">DNI no registrado o ya emitió su voto.</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2.5 max-w-xs mx-auto pt-2">
+                        <button type="button" onclick="pressNum('1')" class="numpad-btn py-3">1</button>
+                        <button type="button" onclick="pressNum('2')" class="numpad-btn py-3">2</button>
+                        <button type="button" onclick="pressNum('3')" class="numpad-btn py-3">3</button>
+                        <button type="button" onclick="pressNum('4')" class="numpad-btn py-3">4</button>
+                        <button type="button" onclick="pressNum('5')" class="numpad-btn py-3">5</button>
+                        <button type="button" onclick="pressNum('6')" class="numpad-btn py-3">6</button>
+                        <button type="button" onclick="pressNum('7')" class="numpad-btn py-3">7</button>
+                        <button type="button" onclick="pressNum('8')" class="numpad-btn py-3">8</button>
+                        <button type="button" onclick="pressNum('9')" class="numpad-btn py-3">9</button>
+                        <button type="button" onclick="clearDNIInput()" class="numpad-btn py-3 text-rose-600 bg-rose-50"><i class="fa-solid fa-delete-left"></i></button>
+                        <button type="button" onclick="pressNum('0')" class="numpad-btn py-3">0</button>
+                        <button type="button" onclick="startVoting()" class="numpad-btn py-3 bg-emerald-600 text-white border-emerald-700 active:bg-emerald-800"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+
+                    <button type="button" onclick="startVoting()" class="w-full max-w-xs py-3.5 px-6 bue-btn-primary rounded-xl font-black text-lg tracking-wide uppercase shadow-lg hover:brightness-110 flex items-center justify-center gap-2 mx-auto cursor-pointer">
+                        <span>Ingresar a Votar</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- VISTA 2: LISTAS -->
+            <section id="ballot-view" class="hidden flex-col h-full space-y-4">
+                <div class="text-center bg-sky-100 border border-sky-300 p-2.5 rounded-lg text-bue-darkBlue font-black uppercase text-sm sm:text-base">
+                    Seleccione la lista de su preferencia tocando sobre la boleta
+                </div>
+
+                <div id="candidate-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 flex-grow items-stretch"></div>
+
+                <div class="pt-2 flex justify-end">
+                    <button type="button" onclick="selectCandidate('BLANCO')" class="bue-btn-blank text-white font-black py-4 px-8 rounded-xl text-base sm:text-lg uppercase shadow-md hover:brightness-105 flex items-center gap-3 cursor-pointer">
+                        <i class="fa-solid fa-file text-xl"></i>
+                        <span>Votar en Blanco</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- VISTA 3: CONFIRMACIÓN -->
+            <section id="confirm-view" class="hidden max-w-lg w-full mx-auto my-auto space-y-6">
+                <div class="bg-white p-6 rounded-2xl border-4 border-bue-blue shadow-2xl text-center space-y-5">
+                    <div class="bg-amber-100 text-amber-900 border border-amber-300 p-3 rounded-lg text-xs font-black uppercase">
+                        <i class="fa-solid fa-shield-halved text-base mr-1"></i> Confirme su elección antes de imprimir la boleta
+                    </div>
+
+                    <div id="confirm-card-preview" class="p-4 bg-slate-50 border-2 border-slate-300 rounded-xl space-y-3"></div>
+
+                    <div class="grid grid-cols-2 gap-4 pt-2">
+                        <button type="button" onclick="cancelSelection()" class="bg-slate-200 border border-slate-400 hover:bg-slate-300 text-slate-800 py-3.5 px-4 rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-arrow-left"></i> Modificar
+                        </button>
+                        <button type="button" onclick="confirmAndCastVote()" class="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-800 py-3.5 px-4 rounded-xl font-black uppercase text-sm shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-check text-lg"></i> Confirmar Voto
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA 4: COMPROBANTE -->
+            <section id="thanks-view" class="hidden max-w-md w-full mx-auto my-auto text-center space-y-6">
+                <div class="bg-white p-8 rounded-2xl border-4 border-emerald-500 shadow-2xl space-y-4">
+                    <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto border-2 border-emerald-400">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h2 class="text-2xl font-black uppercase text-slate-800 tracking-tight">¡Voto Registrado!</h2>
+                    <p class="text-slate-600 text-sm font-bold">Su sufragio ha sido procesado con éxito.</p>
+                    
+                    <div class="bg-slate-100 p-3 rounded-lg border border-slate-300 font-mono text-xs text-slate-500 break-all">
+                        Firma Digital: <span id="receipt-hash">00000000</span>
+                    </div>
+
+                    <p class="text-xs text-sky-800 bg-sky-50 p-2 rounded font-bold">Reiniciando en <span id="countdown">4</span> segundos...</p>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="bg-slate-200 border-t border-slate-300 px-4 py-2.5 flex justify-between items-center text-xs font-bold text-slate-600">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-bue-blue"></i>
+                <span>Mesa N° 1 • Col. Sec. de Artes N° 49 (Tilcara)</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span id="step-dot-1" class="w-6 h-6 rounded-full bg-bue-blue text-white flex items-center justify-center text-xs font-black shadow">1</span>
+                <span class="w-4 h-0.5 bg-slate-400"></span>
+                <span id="step-dot-2" class="w-6 h-6 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center text-xs font-black">2</span>
+                <span class="w-4 h-0.5 bg-slate-400"></span>
+                <span id="step-dot-3" class="w-6 h-6 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center text-xs font-black">3</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL AUTH AUTORIDAD -->
+    <div id="admin-auth-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 border-4 border-sky-600 shadow-2xl text-center space-y-4 relative">
+            <button type="button" onclick="closeAdminAuthModal()" class="absolute right-3 top-3 text-slate-400 hover:text-rose-600 text-xl font-bold p-1 cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="w-12 h-12 bg-sky-100 text-sky-700 rounded-full flex items-center justify-center text-2xl mx-auto border border-sky-300">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-black uppercase text-slate-800">Autoridad de Mesa</h3>
+                <p class="text-xs text-slate-500 font-bold">Ingrese el PIN de acceso</p>
+            </div>
+
+            <input type="password" id="admin-pin-input" maxlength="6" placeholder="••••" readonly
+                class="w-full text-center text-3xl font-mono tracking-widest bg-slate-100 border-2 border-slate-300 rounded-lg py-2 text-slate-800 outline-none">
+
+            <div class="grid grid-cols-3 gap-2 pt-1">
+                <button type="button" onclick="pressPin('1')" class="numpad-btn py-2 text-base">1</button>
+                <button type="button" onclick="pressPin('2')" class="numpad-btn py-2 text-base">2</button>
+                <button type="button" onclick="pressPin('3')" class="numpad-btn py-2 text-base">3</button>
+                <button type="button" onclick="pressPin('4')" class="numpad-btn py-2 text-base">4</button>
+                <button type="button" onclick="pressPin('5')" class="numpad-btn py-2 text-base">5</button>
+                <button type="button" onclick="pressPin('6')" class="numpad-btn py-2 text-base">6</button>
+                <button type="button" onclick="pressPin('7')" class="numpad-btn py-2 text-base">7</button>
+                <button type="button" onclick="pressPin('8')" class="numpad-btn py-2 text-base">8</button>
+                <button type="button" onclick="pressPin('9')" class="numpad-btn py-2 text-base">9</button>
+                <button type="button" onclick="clearPinInput()" class="numpad-btn py-2 text-rose-600 bg-rose-50 text-sm font-bold"><i class="fa-solid fa-eraser"></i></button>
+                <button type="button" onclick="pressPin('0')" class="numpad-btn py-2 text-base">0</button>
+                <button type="button" onclick="verifyAdminPIN()" class="numpad-btn py-2 bg-sky-600 text-white border-sky-700 text-sm font-bold"><i class="fa-solid fa-key"></i></button>
+            </div>
+
+            <div id="pin-error-msg" class="hidden text-xs text-rose-600 font-bold bg-rose-50 p-2 rounded border border-rose-200">
+                PIN incorrecto. Reintente.
+            </div>
+
+            <button type="button" onclick="verifyAdminPIN()" class="w-full py-3 bg-sky-700 hover:bg-sky-800 text-white font-black rounded-lg uppercase text-sm shadow cursor-pointer">
+                Ingresar al Panel
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PANEL ADMINISTRACIÓN COMPLETO -->
+    <div id="admin-panel-modal" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 overflow-y-auto p-4 sm:p-6">
+        <div class="bg-white rounded-2xl max-w-5xl w-full mx-auto p-6 border-2 border-slate-300 shadow-2xl space-y-6">
+            
+            <div class="flex justify-between items-center border-b pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-sky-700 text-white rounded-lg flex items-center justify-center text-xl font-black">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black uppercase text-slate-800">Panel Autoridades y Administración</h2>
+                        <span class="text-xs text-slate-500 font-bold">Colegio Secundario de Artes N° 49 • Control de Escrutinio y Padrón</span>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAdminPanel()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-lg text-sm uppercase cursor-pointer">
+                    <i class="fa-solid fa-xmark mr-1"></i> Cerrar
+                </button>
+            </div>
+
+            <!-- REGISTRO DINÁMICO DE AUTORIDADES Y CONFIGURACIÓN DEL COLEGIO -->
+            <div class="bg-sky-50 p-4 rounded-xl border border-sky-200 space-y-4">
+                <div class="flex justify-between items-center border-b border-sky-200 pb-2 flex-wrap gap-2">
+                    <div>
+                        <h4 class="font-black text-xs uppercase text-sky-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-school text-sky-700"></i> Datos del Colegio y Logotipo
+                        </h4>
+                        <p class="text-[11px] text-sky-700 font-bold">Suba el logo institucional o modifique la URL si lo desea.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-sky-800 mb-1">Cargar Logo Institucional:</label>
+                        <input type="file" accept="image/*" onchange="uploadSchoolLogo(this)" class="text-xs text-slate-600 w-full file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-sky-700 file:text-white hover:file:bg-sky-800 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-sky-800 mb-1">Nombre de Archivo / URL Logo:</label>
+                        <input type="text" id="school-logo-url-input" onchange="updateSchoolLogoUrl(this.value)" placeholder="logo transp - copia.jpg" class="w-full p-2 border rounded text-xs font-mono">
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-sky-200 space-y-3">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h4 class="font-black text-xs uppercase text-sky-900 flex items-center gap-1.5">
+                                <i class="fa-solid fa-users-gear text-sky-700"></i> Registro de Autoridades (Director, Profesor Asesor, Presidente de Mesa, etc.)
+                            </h4>
+                            <p class="text-[11px] text-sky-700 font-bold">Agregue todos los puestos y nombres necesarios. Aparecerán para la firma en el Acta PDF.</p>
+                        </div>
+                        <button type="button" onclick="addAutoridadField()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-3 py-1.5 rounded text-xs uppercase flex items-center gap-1 shadow cursor-pointer">
+                            <i class="fa-solid fa-user-plus"></i> Agregar Autoridad
+                        </button>
+                    </div>
+
+                    <div id="autoridades-list-container" class="space-y-2"></div>
+
+                    <button type="button" onclick="saveAutoridadData()" class="bg-emerald-600 text-white font-bold py-2 px-4 rounded text-xs uppercase hover:bg-emerald-700 cursor-pointer flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar Autoridades
+                    </button>
+                </div>
+
+                <!-- CAMBIO DE PIN DE AUTORIDAD DE MESA -->
+                <div class="pt-2 border-t border-sky-200 space-y-2">
+                    <h4 class="font-black text-xs uppercase text-sky-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-key text-sky-700"></i> Clave de Acceso al Panel (PIN)
+                    </h4>
+                    <div class="flex items-center gap-2 max-w-sm">
+                        <input type="password" id="new-pin-input" placeholder="Nuevo PIN (ej: 5678)" maxlength="6" class="p-2 border rounded text-xs font-mono font-bold w-full">
+                        <button type="button" onclick="updateAdminPIN()" class="bg-sky-700 text-white font-bold py-2 px-4 rounded text-xs uppercase hover:bg-sky-800 cursor-pointer shrink-0">
+                            Cambiar PIN
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN DE ESCRUTINIO EN VIVO, GRÁFICOS Y DESCARGA PDF -->
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center border-b pb-2 flex-wrap gap-2">
+                    <div>
+                        <h4 class="font-black text-sm uppercase text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-bue-blue"></i> Escrutinio en Vivo y Resultados
+                        </h4>
+                        <p class="text-xs text-slate-500 font-bold mt-0.5">
+                            Recuento de votos en tiempo real por lista y descarga del Acta Oficial.
+                        </p>
+                    </div>
+                    <button type="button" onclick="exportResultsPDF()" class="bg-rose-700 hover:bg-rose-800 text-white font-bold px-4 py-2 rounded-lg text-xs uppercase flex items-center gap-2 shadow cursor-pointer">
+                        <i class="fa-solid fa-file-pdf text-base"></i> Descargar Acta en PDF
+                    </button>
+                </div>
+
+                <!-- GRÁFICOS DE BARRAS Y TORTA -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
+                        <span class="text-xs font-black uppercase text-slate-700 mb-2">Resultados por Lista (Barras)</span>
+                        <div class="w-full h-56">
+                            <canvas id="chart-bar"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
+                        <span class="text-xs font-black uppercase text-slate-700 mb-2">Distribución Porcentual (Torta)</span>
+                        <div class="w-full h-56 flex justify-center">
+                            <canvas id="chart-pie"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABLA DETALLADA DE VOTOS REGISTRADOS -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black uppercase text-slate-700">Registro Nominal de Votos (<span id="total-votos-count">0</span> emitidos)</span>
+                    </div>
+                    <div class="max-h-52 overflow-y-auto border border-slate-200 rounded-lg">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-slate-100 border-b border-slate-300 font-black uppercase text-slate-600 sticky top-0">
+                                <tr>
+                                    <th class="p-2">DNI</th>
+                                    <th class="p-2">Nombre y Apellido</th>
+                                    <th class="p-2">Opción Votada</th>
+                                    <th class="p-2">Fecha / Hora</th>
+                                    <th class="p-2">Firma Digital</th>
+                                    <th class="p-2 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="votos-table-body" class="divide-y divide-slate-200 font-medium">
+                                <tr>
+                                    <td colspan="6" class="p-3 text-center text-slate-400">Sin votos registrados en la urna local.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONFIGURACIÓN DE LISTAS Y LOGOS CON BOTÓN DE SUBIR IMAGEN DIRECTA -->
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center border-b pb-2 flex-wrap gap-2">
+                    <div>
+                        <h4 class="font-black text-sm uppercase text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-id-card text-bue-blue"></i> Configuración de Listas y Carga Directa de Logos
+                        </h4>
+                        <p class="text-xs text-slate-500 font-bold mt-0.5">
+                            Puedes subir la foto del logo directamente desde tu computadora/celular o escribir el nombre del archivo.
+                        </p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="addNewCandidateList()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold px-3 py-1.5 rounded text-xs uppercase flex items-center gap-1 shadow cursor-pointer">
+                            <i class="fa-solid fa-plus"></i> Nueva Lista
+                        </button>
+                        <button type="button" onclick="saveAllCandidateChanges()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-1.5 rounded text-xs uppercase flex items-center gap-1.5 shadow cursor-pointer">
+                            <i class="fa-solid fa-floppy-disk text-sm"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="admin-candidates-editor-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+                <div class="pt-2 flex justify-end">
+                    <button type="button" onclick="saveAllCandidateChanges()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-6 rounded-xl text-xs uppercase shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-check text-base"></i> Guardar Todos los Cambios de Listas
+                    </button>
+                </div>
+            </div>
+
+            <!-- CARGA DE PADRÓN Y NOMBRES -->
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center border-b pb-2 flex-wrap gap-2">
+                    <h4 class="font-black text-sm uppercase text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-users-rectangle text-bue-blue"></i> Carga de Padrón Electoral (DNIs y Nombres)
+                    </h4>
+                    <div id="padron-status-badge" class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                        <span id="padron-count-text">Padrón Cargado: 0 votantes</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg border border-slate-300 space-y-2">
+                        <span class="text-xs font-black uppercase text-slate-700 block">Opción 1: Archivo PDF, Excel o CSV</span>
+                        <input type="file" id="padron-file-input" accept=".pdf, .xlsx, .xls, .csv" class="text-xs text-slate-600 w-full">
+                        <button type="button" onclick="processPadronFile()" class="w-full bg-sky-700 text-white font-bold py-2 rounded text-xs uppercase hover:bg-sky-800 flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-file-arrow-up"></i> Cargar PDF / Excel
+                        </button>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border border-slate-300 space-y-2">
+                        <span class="text-xs font-black uppercase text-slate-700 block">Opción 2: Pegar DNIs y Nombres</span>
+                        <textarea id="padron-text-input" rows="2" placeholder="Formato: 12345678, PEREZ JUAN... o sólo DNIs por línea" class="w-full p-2 text-xs font-mono border rounded"></textarea>
+                        <button type="button" onclick="processPadronText()" class="w-full bg-slate-700 text-white font-bold py-2 rounded text-xs uppercase hover:bg-slate-800 cursor-pointer">
+                            Cargar Lista de Texto
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REINICIO Y MANTENIMIENTO DE URNA -->
+            <div class="bg-rose-50 p-5 rounded-xl border border-rose-200 space-y-3">
+                <h4 class="font-black text-sm uppercase text-rose-800 flex items-center gap-2">
+                    <i class="fa-solid fa-trash-can text-rose-700"></i> Mantenimiento y Reinicio de Urna Digital
+                </h4>
+                <p class="text-xs text-rose-600 font-bold">Opciones exclusivas para la Autoridad de Mesa antes o después del escrutinio.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <button type="button" onclick="clearVotedDNIs()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold p-3 rounded-lg text-xs uppercase shadow cursor-pointer flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i> Borrar Votos (Limpiar Urna)
+                    </button>
+                    
+                    <button type="button" onclick="clearPadronData()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold p-3 rounded-lg text-xs uppercase shadow cursor-pointer flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-users-slash"></i> Borrar Padrón Cargado
+                    </button>
+
+                    <button type="button" onclick="resetEntireApp()" class="bg-rose-700 hover:bg-rose-800 text-white font-bold p-3 rounded-lg text-xs uppercase shadow cursor-pointer flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Restablecer De Fábrica
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- LÓGICA DE LA APLICACIÓN -->
+    <script>
+        let appState = {
+            currentStep: 1,
+            enteredDNI: '',
+            enteredVoterName: '',
+            selectedCandidate: null,
+            adminPIN: localStorage.getItem('bue_admin_pin') || '1234',
+            sheetsUrl: localStorage.getItem('bue_sheets_url') || 'https://script.google.com/macros/s/AKfycbx65DkErxd6Ta8-f9lOLrgz-zVPpttDBCoQKR7dZqKeq7ymdVqu6Z1XZhTrjI8FS4LS/exec',
+            schoolLogo: localStorage.getItem('bue_school_logo') || 'logo transp - copia.jpg',
+            autoridades: JSON.parse(localStorage.getItem('bue_autoridades_list') || JSON.stringify([
+                { cargo: 'Presidente de Mesa', nombre: '' },
+                { cargo: 'Director/a', nombre: '' },
+                { cargo: 'Profesor/a Asesor/a', nombre: '' }
+            ])),
+            votedDNIs: JSON.parse(localStorage.getItem('bue_voted_dnis') || '[]'),
+            voteLogs: JSON.parse(localStorage.getItem('bue_vote_logs') || '[]'),
+            padron: JSON.parse(localStorage.getItem('bue_padron') || '[]'),
+            padronNames: JSON.parse(localStorage.getItem('bue_padron_names') || '{}'),
+            results: JSON.parse(localStorage.getItem('bue_results') || '{}'),
+            candidates: JSON.parse(localStorage.getItem('bue_candidates_config') || JSON.stringify([
+                {
+                    id: "1",
+                    listNumber: "LISTA 149",
+                    partyName: "RESONANCIA",
+                    president: "MARTÍN GÓMEZ",
+                    vice: "SOFÍA LÓPEZ",
+                    color: "#e63946",
+                    logo: "logo149.jpeg"
+                },
+                {
+                    id: "2",
+                    listNumber: "LISTA 161",
+                    partyName: "IMPULSO UNIVERSITARIO",
+                    president: "JOSÉ LUIS DÍAZ",
+                    vice: "NICOLÁS GARCÍA",
+                    color: "#0070BA",
+                    logo: ""
+                }
+            ]))
+        };
+
+        let barChartInstance = null;
+        let pieChartInstance = null;
+
+        function updateSchoolLogoUI() {
+            const logoImg = document.getElementById('school-logo-img');
+            const urlInput = document.getElementById('school-logo-url-input');
+            if (logoImg && appState.schoolLogo) {
+                logoImg.src = formatImageSrc(appState.schoolLogo);
+            }
+            if (urlInput) {
+                urlInput.value = appState.schoolLogo;
+            }
+        }
+
+        window.uploadSchoolLogo = function(fileInput) {
+            if (!fileInput.files || !fileInput.files[0]) return;
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                appState.schoolLogo = e.target.result;
+                localStorage.setItem('bue_school_logo', appState.schoolLogo);
+                updateSchoolLogoUI();
+                alert('¡Logo del Colegio cargado correctamente!');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.updateSchoolLogoUrl = function(val) {
+            appState.schoolLogo = val.trim();
+            localStorage.setItem('bue_school_logo', appState.schoolLogo);
+            updateSchoolLogoUI();
+        };
+
+        // GESTIÓN DINÁMICA DE AUTORIDADES
+        function renderAutoridadesEditor() {
+            const container = document.getElementById('autoridades-list-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            appState.autoridades.forEach((aut, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 bg-white p-2 rounded border border-slate-300';
+                row.innerHTML = `
+                    <input type="text" value="${aut.cargo || ''}" placeholder="Cargo / Función (ej: Director)" oninput="updateAutoridadField(${index}, 'cargo', this.value)" class="aut-cargo-input p-1.5 border rounded text-xs font-bold w-1/3">
+                    <input type="text" value="${aut.nombre || ''}" placeholder="Nombre y Apellido" oninput="updateAutoridadField(${index}, 'nombre', this.value)" class="aut-nombre-input p-1.5 border rounded text-xs font-bold w-2/3">
+                    <button type="button" onclick="removeAutoridadField(${index})" class="text-rose-600 hover:text-rose-800 p-1 font-bold cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        window.updateAutoridadField = function(index, field, value) {
+            if (appState.autoridades[index]) {
+                appState.autoridades[index][field] = value;
+                localStorage.setItem('bue_autoridades_list', JSON.stringify(appState.autoridades));
+            }
+        };
+
+        window.addAutoridadField = function() {
+            appState.autoridades.push({ cargo: '', nombre: '' });
+            localStorage.setItem('bue_autoridades_list', JSON.stringify(appState.autoridades));
+            renderAutoridadesEditor();
+        };
+
+        window.removeAutoridadField = function(index) {
+            appState.autoridades.splice(index, 1);
+            localStorage.setItem('bue_autoridades_list', JSON.stringify(appState.autoridades));
+            renderAutoridadesEditor();
+        };
+
+        window.saveAutoridadData = function() {
+            const cargos = document.querySelectorAll('.aut-cargo-input');
+            const nombres = document.querySelectorAll('.aut-nombre-input');
+            const updated = [];
+
+            cargos.forEach((input, i) => {
+                const cargoVal = input.value.trim();
+                const nombreVal = nombres[i] ? nombres[i].value.trim() : '';
+                if (cargoVal || nombreVal) {
+                    updated.push({ cargo: cargoVal, nombre: nombreVal });
+                }
+            });
+
+            appState.autoridades = updated;
+            localStorage.setItem('bue_autoridades_list', JSON.stringify(appState.autoridades));
+            alert('¡Datos de Autoridades guardados y registrados permanentemente!');
+        };
+
+        function formatImageSrc(url) {
+            if (!url) return '';
+            let cleaned = url.trim();
+            if (cleaned.startsWith('data:image/')) return cleaned;
+            if (cleaned.includes('github.com') && cleaned.includes('/blob/')) {
+                cleaned = cleaned.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+            }
+            return cleaned;
+        }
+
+        function handleImageError(imgElem, candPartyName, rawLogo) {
+            if (!imgElem.dataset.retried && rawLogo && !rawLogo.startsWith('data:')) {
+                imgElem.dataset.retried = "true";
+                imgElem.src = `https://raw.githubusercontent.com/daiviky-cmyk/elecciones/main/${rawLogo}`;
+                return;
+            }
+
+            const fallbackBadge = `
+                <div class="w-24 h-24 my-3 mx-auto flex flex-col items-center justify-center bg-sky-50 border-2 border-bue-blue rounded-xl text-bue-darkBlue font-black p-2 shadow-inner">
+                    <i class="fa-solid fa-flag text-3xl mb-1 text-bue-blue"></i>
+                    <span class="text-[11px] text-center uppercase tracking-tighter leading-tight font-black">${candPartyName || 'LISTA'}</span>
+                </div>
+            `;
+            imgElem.parentElement.innerHTML = fallbackBadge;
+        }
+
+        window.pressNum = function(num) {
+            const input = document.getElementById('dni-input');
+            if (input && input.value.length < 8) {
+                input.value += num;
+                appState.enteredDNI = input.value;
+                hideDNIError();
+            }
+        };
+
+        window.clearDNIInput = function() {
+            const input = document.getElementById('dni-input');
+            if (input) input.value = '';
+            appState.enteredDNI = '';
+            appState.enteredVoterName = '';
+            hideDNIError();
+        };
+
+        function hideDNIError() {
+            const errDiv = document.getElementById('dni-error');
+            if (errDiv) errDiv.classList.add('hidden');
+        }
+
+        function showDNIError(msg) {
+            const errDiv = document.getElementById('dni-error');
+            const msgSpan = document.getElementById('dni-error-msg');
+            if (msgSpan) msgSpan.textContent = msg;
+            if (errDiv) errDiv.classList.remove('hidden');
+        }
+
+        window.switchView = function(viewName) {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('ballot-view').classList.add('hidden');
+            document.getElementById('confirm-view').classList.add('hidden');
+            document.getElementById('thanks-view').classList.add('hidden');
+            document.getElementById('ballot-view').classList.remove('flex');
+
+            if (viewName === 'login') document.getElementById('login-view').classList.remove('hidden');
+            else if (viewName === 'ballot') {
+                document.getElementById('ballot-view').classList.remove('hidden');
+                document.getElementById('ballot-view').classList.add('flex');
+            }
+            else if (viewName === 'confirm') document.getElementById('confirm-view').classList.remove('hidden');
+            else if (viewName === 'thanks') document.getElementById('thanks-view').classList.remove('hidden');
+        };
+
+        window.updateStepProgress = function(step) {
+            appState.currentStep = step;
+            const statusStep = document.getElementById('bue-status-step');
+            if (statusStep) {
+                if (step === 1) statusStep.textContent = 'Paso 1: Acreditación de DNI';
+                else if (step === 2) statusStep.textContent = 'Paso 2: Selección de Lista';
+                else statusStep.textContent = 'Paso 3: Confirmación e Impresión';
+            }
+        };
+
+        window.startVoting = function() {
+            const dni = document.getElementById('dni-input').value.trim();
+
+            if (!dni || dni.length < 7) {
+                return showDNIError('Ingrese un número de DNI válido (mínimo 7 dígitos).');
+            }
+
+            // REGLA DE ORO: CONTROL DE VOTO ÚNICO POR DNI
+            if (appState.votedDNIs.includes(dni)) {
+                return showDNIError(`¡EL DNI ${dni} YA EMITIÓ SU VOTO EN ESTA ELECCIÓN!`);
+            }
+
+            // CONTROL DE PADRÓN HABILITADO
+            if (appState.padron.length > 0 && !appState.padron.includes(dni)) {
+                return showDNIError('El DNI no se encuentra registrado en el padrón habilitado.');
+            }
+
+            appState.enteredDNI = dni;
+            // Buscar automáticamente el Nombre y Apellido desde el Padrón cargado
+            appState.enteredVoterName = appState.padronNames[dni] || 'DESCONOCIDO / NO REGISTRADO EN PADRON';
+
+            switchView('ballot');
+            updateStepProgress(2);
+        };
+
+        window.openAdminAuthModal = function() {
+            document.getElementById('admin-pin-input').value = '';
+            document.getElementById('pin-error-msg').classList.add('hidden');
+            document.getElementById('admin-auth-modal').classList.remove('hidden');
+        };
+
+        window.closeAdminAuthModal = function() {
+            document.getElementById('admin-auth-modal').classList.add('hidden');
+        };
+
+        window.pressPin = function(num) {
+            const input = document.getElementById('admin-pin-input');
+            if (input.value.length < 6) input.value += num;
+        };
+
+        window.clearPinInput = function() {
+            document.getElementById('admin-pin-input').value = '';
+        };
+
+        window.verifyAdminPIN = function() {
+            if (document.getElementById('admin-pin-input').value === appState.adminPIN) {
+                closeAdminAuthModal();
+                openAdminPanel();
+            } else {
+                document.getElementById('pin-error-msg').classList.remove('hidden');
+            }
+        };
+
+        window.openAdminPanel = function() {
+            document.getElementById('admin-panel-modal').classList.remove('hidden');
+            renderAdminCandidatesEditor();
+            renderEscrutinioPanel();
+            renderAutoridadesEditor();
+            updateSchoolLogoUI();
+            updatePadronStatusUI();
+        };
+
+        function updatePadronStatusUI() {
+            const countEl = document.getElementById('padron-count-text');
+            const badgeEl = document.getElementById('padron-status-badge');
+            const total = appState.padron ? appState.padron.length : 0;
+
+            if (countEl) {
+                countEl.textContent = `Padrón Activo: ${total} votantes habilitados`;
+            }
+            if (badgeEl) {
+                if (total > 0) {
+                    badgeEl.className = 'bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5';
+                } else {
+                    badgeEl.className = 'bg-amber-100 text-amber-800 border border-amber-300 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5';
+                }
+            }
+        }
+
+        window.updateAdminPIN = function() {
+            const pinInput = document.getElementById('new-pin-input');
+            if (!pinInput) return;
+            const newPin = pinInput.value.trim();
+            if (!newPin || newPin.length < 4) {
+                return alert('Por favor ingrese un PIN de al menos 4 dígitos.');
+            }
+            appState.adminPIN = newPin;
+            localStorage.setItem('bue_admin_pin', newPin);
+            pinInput.value = '';
+            alert('¡PIN de Autoridad de Mesa actualizado con éxito!');
+        };
+
+        window.closeAdminPanel = function() {
+            document.getElementById('admin-panel-modal').classList.add('hidden');
+        };
+
+        // RENDERING Y GRÁFICOS DEL ESCRUTINIO EN VIVO
+        function renderEscrutinioPanel() {
+            // Contar votos por lista
+            const counts = {};
+            appState.candidates.forEach(c => counts[c.partyName] = 0);
+            counts['VOTO EN BLANCO'] = 0;
+
+            appState.voteLogs.forEach(v => {
+                if (counts[v.lista] !== undefined) {
+                    counts[v.lista]++;
+                } else {
+                    counts[v.lista] = 1;
+                }
+            });
+
+            // Actualizar tabla
+            const tbody = document.getElementById('votos-table-body');
+            const totalCountEl = document.getElementById('total-votos-count');
+            if (totalCountEl) totalCountEl.textContent = appState.voteLogs.length;
+
+            if (tbody) {
+                if (appState.voteLogs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400">Sin votos registrados en la urna local.</td></tr>`;
+                } else {
+                    tbody.innerHTML = appState.voteLogs.map((v, index) => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-2 font-mono font-bold">${v.dni}</td>
+                            <td class="p-2 font-bold text-slate-800">${v.nombre}</td>
+                            <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-black text-white ${v.lista === 'VOTO EN BLANCO' ? 'bg-slate-500' : 'bg-sky-700'}">${v.lista}</span></td>
+                            <td class="p-2 text-slate-500 text-[11px]">${v.timestamp}</td>
+                            <td class="p-2 font-mono text-[10px] text-slate-400">${v.hash}</td>
+                            <td class="p-2 text-center">
+                                <button type="button" onclick="deleteSingleVote(${index})" title="Anular/Borrar este voto para liberar el DNI" class="bg-rose-100 hover:bg-rose-600 text-rose-700 hover:text-white px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer">
+                                    <i class="fa-solid fa-trash-can mr-1"></i>Anular
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // Datos para gráficos
+            const labels = Object.keys(counts);
+            const dataValues = Object.values(counts);
+            const colors = labels.map(label => {
+                if (label === 'VOTO EN BLANCO') return '#64748b';
+                const cand = appState.candidates.find(c => c.partyName === label);
+                return cand ? cand.color : '#0284c7';
+            });
+
+            // Chart de Barras
+            const ctxBar = document.getElementById('chart-bar')?.getContext('2d');
+            if (ctxBar) {
+                if (barChartInstance) barChartInstance.destroy();
+                barChartInstance = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Votos',
+                            data: dataValues,
+                            backgroundColor: colors,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
+
+            // Chart de Torta
+            const ctxPie = document.getElementById('chart-pie')?.getContext('2d');
+            if (ctxPie) {
+                if (pieChartInstance) pieChartInstance.destroy();
+                pieChartInstance = new Chart(ctxPie, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: colors
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                    }
+                });
+            }
+        }
+
+        // ELIMINAR / ANULAR UN VOTO INDIVIDUAL Y LIBERAR EL DNI
+        window.deleteSingleVote = function(index) {
+            const vote = appState.voteLogs[index];
+            if (!vote) return;
+
+            if (confirm(`¿Eliminar/Anular el voto registrado para el DNI ${vote.dni} (${vote.nombre})?\n\nEsta acción eliminará el voto de los cómputos y liberará el DNI para que el verdadero estudiante pueda votar.`)) {
+                // 1. Quitar DNI de la lista de habilitados/ya votados
+                appState.votedDNIs = appState.votedDNIs.filter(d => d !== vote.dni);
+
+                // 2. Eliminar entrada del log de votos
+                appState.voteLogs.splice(index, 1);
+
+                // 3. Persistir en localStorage
+                localStorage.setItem('bue_voted_dnis', JSON.stringify(appState.votedDNIs));
+                localStorage.setItem('bue_vote_logs', JSON.stringify(appState.voteLogs));
+
+                // 4. Actualizar vista de escrutinio
+                renderEscrutinioPanel();
+                alert(`Voto del DNI ${vote.dni} anulado. El DNI ya está habilitado nuevamente para votar.`);
+            }
+        };
+
+        // DESCARGA DE ACTA OFICIAL EN PDF CON INSTITUCIÓN Y TODAS LAS AUTORIDADES
+        window.exportResultsPDF = function() {
+            if (!window.jspdf) {
+                return alert('Cargando librería de PDF. Intente de nuevo en un segundo.');
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const fechaHora = new Date().toLocaleString('es-AR');
+
+            // Encabezado Institucional
+            doc.setFillColor(0, 98, 168);
+            doc.rect(0, 0, 210, 28, 'F');
+            doc.setTextColor(255, 255, 255);
+
+            // Intentar incluir el logo del colegio en el PDF si existe
+            let startTextX = 14;
+            if (appState.schoolLogo) {
+                try {
+                    const formattedLogo = formatImageSrc(appState.schoolLogo);
+                    doc.addImage(formattedLogo, 'JPEG', 10, 3, 22, 22);
+                    startTextX = 36;
+                } catch (e) {
+                    // Si ocurre un error al renderizar la imagen, continúa sin interrumpir la generación
+                    startTextX = 14;
+                }
+            }
+
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('COLEGIO SECUNDARIO DE ARTES N° 49 - TILCARA', startTextX, 12);
+            doc.setFontSize(10);
+            doc.text('ACTA OFICIAL DE ESCRUTINIO • ELECCIONES CENTRO DE ESTUDIANTES', startTextX, 19);
+
+            // Información General
+            doc.setTextColor(40, 40, 40);
+            doc.setFontSize(10);
+            doc.text(`Fecha y Hora de Emisión: ${fechaHora}`, 14, 35);
+            doc.text(`Mesa N° 1 • Total de Votantes Sufragantes: ${appState.voteLogs.length}`, 14, 41);
+
+            // Resumen de Votos
+            const counts = {};
+            appState.candidates.forEach(c => counts[c.partyName] = 0);
+            counts['VOTO EN BLANCO'] = 0;
+            appState.voteLogs.forEach(v => {
+                if (counts[v.lista] !== undefined) counts[v.lista]++;
+                else counts[v.lista] = 1;
+            });
+
+            const summaryRows = Object.entries(counts).map(([lista, votos]) => {
+                const pct = appState.voteLogs.length > 0 ? ((votos / appState.voteLogs.length) * 100).toFixed(1) + '%' : '0%';
+                return [lista, votos.toString(), pct];
+            });
+
+            doc.autoTable({
+                startY: 48,
+                head: [['Lista / Opción', 'Votos Totales', 'Porcentaje']],
+                body: summaryRows,
+                theme: 'striped',
+                headStyles: { fillColor: [0, 112, 186] }
+            });
+
+            // Sección de Firmas de Autoridades registradas
+            let startY = doc.lastAutoTable.finalY + 25;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('FIRMAS DE CONFORMIDAD DE AUTORIDADES:', 14, startY);
+            startY += 20;
+
+            const auts = appState.autoridades.length > 0 ? appState.autoridades : [{ cargo: 'Autoridad de Mesa', nombre: '' }];
+            let xPos = 14;
+            let colWidth = 60;
+
+            auts.forEach((aut, i) => {
+                if (xPos + colWidth > 200) {
+                    xPos = 14;
+                    startY += 25;
+                }
+                if (startY < 270) {
+                    doc.line(xPos, startY, xPos + 50, startY);
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(aut.cargo || 'Autoridad', xPos, startY + 4);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(aut.nombre || '...............................', xPos, startY + 8);
+                    xPos += colWidth;
+                }
+            });
+
+            doc.save(`Acta_Escrutinio_Artes49_${Date.now()}.pdf`);
+        };
+
+        // MANTENIMIENTO DE URNA Y REGISTRO DE AUTORIDAD DE MESA
+        window.saveAutoridadData = function() {
+            const nombre = document.getElementById('autoridad-nombre').value;
+            const cargo = document.getElementById('autoridad-cargo').value;
+            localStorage.setItem('bue_autoridad_nombre', nombre);
+            localStorage.setItem('bue_autoridad_cargo', cargo);
+            alert('Datos de Autoridad de Mesa guardados correctamente.');
+        };
+
+        window.clearVotedDNIs = function() {
+            if (confirm('¿Reiniciar la urna digital? Todos los DNI registrados como votados podrán volver a emitir su voto.')) {
+                appState.votedDNIs = [];
+                appState.voteLogs = [];
+                localStorage.removeItem('bue_voted_dnis');
+                localStorage.removeItem('bue_vote_logs');
+                renderEscrutinioPanel();
+                alert('Urna reiniciada con éxito. Registros de voto limpiados.');
+            }
+        };
+
+        window.clearPadronData = function() {
+            if (confirm('¿Borrar completamente el padrón cargado (DNI y Nombres)?')) {
+                appState.padron = [];
+                appState.padronNames = {};
+                localStorage.removeItem('bue_padron');
+                localStorage.removeItem('bue_padron_names');
+                alert('Padrón electoral borrado.');
+            }
+        };
+
+        window.resetEntireApp = function() {
+            if (confirm('¿Restablecer el sistema por completo a valores de fábrica?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        };
+
+        function renderAdminCandidatesEditor() {
+            const container = document.getElementById('admin-candidates-editor-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            appState.candidates.forEach((cand, index) => {
+                const box = document.createElement('div');
+                box.className = 'bg-white p-4 rounded-xl border-2 border-slate-300 space-y-3 text-xs shadow-sm candidate-edit-card';
+                box.dataset.id = cand.id;
+
+                const formattedLogo = formatImageSrc(cand.logo || '');
+                const previewImg = formattedLogo ? `<img src="${formattedLogo}" class="w-12 h-12 object-contain rounded border bg-slate-50 p-0.5">` : '';
+
+                box.innerHTML = `
+                    <div class="flex justify-between items-center border-b pb-1.5">
+                        <span class="font-black text-slate-800 uppercase text-sm">Opción ${index + 1}</span>
+                        <div class="flex items-center gap-2">
+                            <label class="font-bold text-slate-600 text-[10px]">Color:</label>
+                            <input type="color" value="${cand.color || '#0070BA'}" data-field="color" class="cand-input w-7 h-7 rounded cursor-pointer border-0">
+                            ${appState.candidates.length > 1 ? `<button type="button" onclick="removeCandidateList('${cand.id}')" class="text-rose-600 font-bold hover:text-rose-800 p-1 cursor-pointer"><i class="fa-solid fa-trash text-sm"></i></button>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="font-bold text-slate-600 block mb-0.5">N° Lista:</label>
+                            <input type="text" value="${cand.listNumber || ''}" data-field="listNumber" class="cand-input w-full p-1.5 border rounded font-mono text-[11px]">
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-600 block mb-0.5">Nombre Lista / Partido:</label>
+                            <input type="text" value="${cand.partyName || ''}" data-field="partyName" class="cand-input w-full p-1.5 border rounded font-bold text-[11px]">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="font-bold text-slate-600 block mb-0.5">Presidente/a:</label>
+                            <input type="text" value="${cand.president || ''}" data-field="president" class="cand-input w-full p-1.5 border rounded text-[11px]">
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-600 block mb-0.5">Vicepresidente/a:</label>
+                            <input type="text" value="${cand.vice || ''}" data-field="vice" class="cand-input w-full p-1.5 border rounded text-[11px]">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-2">
+                        <span class="font-bold text-slate-700 block text-[11px]">Carga de Logo:</span>
+                        <div class="flex items-center gap-2">
+                            ${previewImg}
+                            <input type="file" accept="image/*" onchange="uploadLogoForCandidate('${cand.id}', this)" class="text-[10px] text-slate-600 w-full file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-sky-700 file:text-white hover:file:bg-sky-800 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-500 block text-[9px]">O escriba el nombre/URL del archivo:</label>
+                            <input type="text" value="${cand.logo || ''}" data-field="logo" class="cand-input w-full p-1 border rounded font-mono text-[10px]">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(box);
+            });
+        }
+
+        window.uploadLogoForCandidate = function(candId, fileInput) {
+            if (!fileInput.files || !fileInput.files[0]) return;
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const base64Url = e.target.result;
+                const cand = appState.candidates.find(c => String(c.id) === String(candId));
+                if (cand) {
+                    cand.logo = base64Url;
+                    localStorage.setItem('bue_candidates_config', JSON.stringify(appState.candidates));
+                    renderAdminCandidatesEditor();
+                    renderCandidateCards();
+                    alert('¡Logo subido e integrado con éxito!');
+                }
+            };
+
+            reader.readAsDataURL(file);
+        };
+
+        window.saveAllCandidateChanges = function() {
+            const cards = document.querySelectorAll('.candidate-edit-card');
+            cards.forEach(card => {
+                const id = card.dataset.id;
+                const cand = appState.candidates.find(c => String(c.id) === String(id));
+                if (cand) {
+                    card.querySelectorAll('.cand-input').forEach(input => {
+                        if (input.dataset.field) cand[input.dataset.field] = input.value.trim();
+                    });
+                }
+            });
+
+            localStorage.setItem('bue_candidates_config', JSON.stringify(appState.candidates));
+            renderCandidateCards();
+            renderAdminCandidatesEditor();
+            alert('¡Cambios guardados con éxito!');
+        };
+
+        window.addNewCandidateList = function() {
+            const count = appState.candidates.length + 1;
+            appState.candidates.push({
+                id: String(Date.now()),
+                listNumber: `LISTA 00${count}`,
+                partyName: `NUEVA LISTA ${count}`,
+                president: "PRESIDENTE / A",
+                vice: "VICEPRESIDENTE / A",
+                color: "#0284c7",
+                logo: ""
+            });
+
+            localStorage.setItem('bue_candidates_config', JSON.stringify(appState.candidates));
+            renderAdminCandidatesEditor();
+            renderCandidateCards();
+        };
+
+        window.removeCandidateList = function(id) {
+            if (confirm('¿Eliminar esta lista?')) {
+                appState.candidates = appState.candidates.filter(c => String(c.id) !== String(id));
+                localStorage.setItem('bue_candidates_config', JSON.stringify(appState.candidates));
+                renderAdminCandidatesEditor();
+                renderCandidateCards();
+            }
+        };
+
+        function renderCandidateCards() {
+            const grid = document.getElementById('candidate-cards-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            appState.candidates.forEach(cand => {
+                const card = document.createElement('div');
+                card.className = 'bue-card';
+                card.onclick = () => selectCandidate(cand.id);
+
+                const rawLogo = cand.logo || '';
+                const formattedLogo = formatImageSrc(rawLogo);
+
+                const logoHtml = formattedLogo 
+                    ? `<img src="${formattedLogo}" alt="Logo" onerror="handleImageError(this, '${cand.partyName.replace(/'/g, "\\'")}', '${rawLogo}')" class="w-28 h-28 my-3 mx-auto object-contain p-1 bg-white border border-slate-200 rounded-lg shadow-sm">` 
+                    : `<div class="w-24 h-24 my-3 mx-auto flex flex-col items-center justify-center bg-sky-50 border-2 border-bue-blue rounded-xl text-bue-darkBlue font-black p-2 shadow-inner"><i class="fa-solid fa-flag text-3xl mb-1 text-bue-blue"></i><span class="text-[11px] text-center uppercase tracking-tighter leading-tight font-black">${cand.partyName}</span></div>`;
+
+                card.innerHTML = `
+                    <div class="bue-card-header" style="background-color: ${cand.color}">
+                        <span class="truncate text-xs sm:text-sm font-black uppercase">${cand.partyName}</span>
+                        <span class="text-xs bg-black/30 px-2 py-0.5 rounded font-mono ml-1 shrink-0">${cand.listNumber}</span>
+                    </div>
+                    <div class="p-3 text-center flex-grow flex flex-col justify-between items-center bg-white">
+                        <div class="flex-grow flex items-center justify-center w-full">
+                            ${logoHtml}
+                        </div>
+                        <div class="w-full border-t pt-2 space-y-1">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block leading-none">Presidente/a</span>
+                                <h3 class="font-black text-slate-800 text-sm sm:text-base uppercase leading-tight">${cand.president}</h3>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block leading-none">Vicepresidente/a</span>
+                                <p class="text-xs font-bold text-slate-700 uppercase">${cand.vice}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.selectCandidate = function(candId) {
+            appState.selectedCandidate = candId;
+            const preview = document.getElementById('confirm-card-preview');
+
+            if (candId === 'BLANCO') {
+                preview.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fa-solid fa-file text-4xl text-sky-600 mb-2"></i>
+                        <h3 class="text-xl font-black uppercase text-slate-800">VOTO EN BLANCO</h3>
+                    </div>
+                `;
+            } else {
+                const cand = appState.candidates.find(c => c.id === candId);
+                const formattedLogo = formatImageSrc(cand.logo || '');
+                const logoHtml = formattedLogo 
+                    ? `<img src="${formattedLogo}" onerror="handleImageError(this, '${cand.partyName.replace(/'/g, "\\'")}', '${cand.logo}')" class="w-24 h-24 mx-auto my-2 object-contain bg-white p-1 border rounded-lg shadow-sm">` 
+                    : '';
+
+                preview.innerHTML = `
+                    <div class="text-center space-y-2">
+                        <div class="inline-block px-3 py-1 rounded text-white text-xs font-black uppercase" style="background-color: ${cand.color}">
+                            ${cand.listNumber} - ${cand.partyName}
+                        </div>
+                        ${logoHtml}
+                        <div class="border-t pt-2 space-y-1">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Presidente/a</span>
+                                <h3 class="text-base font-black uppercase text-slate-800">${cand.president}</h3>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block">Vicepresidente/a</span>
+                                <p class="text-xs font-bold text-slate-700 uppercase">${cand.vice}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            switchView('confirm');
+            updateStepProgress(3);
+        };
+
+        window.cancelSelection = function() {
+            switchView('ballot');
+            updateStepProgress(2);
+        };
+
+        window.confirmAndCastVote = function() {
+            const candId = appState.selectedCandidate;
+            const dni = appState.enteredDNI;
+            const voterName = appState.enteredVoterName;
+            const timestamp = new Date().toLocaleString('es-AR');
+            const hash = 'DIG-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+
+            const listaElegida = candId === 'BLANCO' ? 'VOTO EN BLANCO' : (appState.candidates.find(c => c.id === candId)?.partyName || candId);
+
+            // REGISTRAR DNI COMO VOTADO Y REGISTRAR LOG DE VOTO
+            appState.votedDNIs.push(dni);
+            const logEntry = {
+                dni: dni,
+                nombre: voterName,
+                lista: listaElegida,
+                timestamp: timestamp,
+                hash: hash
+            };
+            appState.voteLogs.push(logEntry);
+
+            localStorage.setItem('bue_voted_dnis', JSON.stringify(appState.votedDNIs));
+            localStorage.setItem('bue_vote_logs', JSON.stringify(appState.voteLogs));
+
+            const votePayload = {
+                dni: dni,
+                nombre: voterName,
+                lista: listaElegida,
+                timestamp: timestamp,
+                hash: hash
+            };
+
+            sendToGoogleSheets(votePayload);
+
+            document.getElementById('receipt-hash').textContent = hash;
+            switchView('thanks');
+
+            let count = 4;
+            const countdownEl = document.getElementById('countdown');
+            const timer = setInterval(() => {
+                count--;
+                if (countdownEl) countdownEl.textContent = count;
+                if (count <= 0) {
+                    clearInterval(timer);
+                    clearDNIInput();
+                    switchView('login');
+                    updateStepProgress(1);
+                }
+            }, 1000);
+        };
+
+        // ENVÍO COMPLETO A GOOGLE SHEETS
+        function sendToGoogleSheets(payload) {
+            if (!appState.sheetsUrl) return;
+
+            const formData = new URLSearchParams();
+            formData.append('dni', payload.dni);
+            formData.append('nombre', payload.nombre);
+            formData.append('lista', payload.lista);
+            formData.append('timestamp', payload.timestamp);
+            formData.append('hash', payload.hash);
+
+            fetch(appState.sheetsUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            }).catch(err => console.log('Sincronización retenida en cola offline'));
+        }
+
+        window.processPadronText = function() {
+            const text = document.getElementById('padron-text-input').value;
+            const lines = text.split('\n');
+            let addedCount = 0;
+
+            lines.forEach(line => {
+                const matchDni = line.match(/\b\d{7,8}\b/);
+                if (matchDni) {
+                    const dni = matchDni[0];
+                    const name = line.replace(dni, '').replace(/[,;-]/g, '').trim();
+                    
+                    if (!appState.padron.includes(dni)) {
+                        appState.padron.push(dni);
+                        addedCount++;
+                    }
+                    if (name) {
+                        appState.padronNames[dni] = name.toUpperCase();
+                    }
+                }
+            });
+
+            localStorage.setItem('bue_padron', JSON.stringify(appState.padron));
+            localStorage.setItem('bue_padron_names', JSON.stringify(appState.padronNames));
+            updatePadronStatusUI();
+            alert(`Se registraron ${addedCount} estudiantes en el padrón.`);
+        };
+
+        // LECTOR DE PDF / EXCEL POR COORDENADAS Y MATRIZ
+        window.processPadronFile = function() {
+            const fileInput = document.getElementById('padron-file-input');
+            if (!fileInput.files.length) return alert('Seleccione un archivo primero.');
+
+            const file = fileInput.files[0];
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.pdf')) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const typedarray = new Uint8Array(e.target.result);
+                        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                        let totalRegistros = 0;
+
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            const textContent = await page.getTextContent();
+                            
+                            // Agrupar elementos por altura vertical Y (tolerancia 4px)
+                            let lineGroups = {};
+                            textContent.items.forEach(item => {
+                                const y = Math.round(item.transform[5] / 4) * 4;
+                                if (!lineGroups[y]) lineGroups[y] = [];
+                                lineGroups[y].push({ x: item.transform[4], str: item.str });
+                            });
+
+                            // Ordenar las líneas de arriba a abajo y elementos de izquierda a derecha
+                            const sortedYKeys = Object.keys(lineGroups).sort((a, b) => b - a);
+
+                            sortedYKeys.forEach(yKey => {
+                                const itemsInLine = lineGroups[yKey].sort((a, b) => a.x - b.x);
+                                const lineStr = itemsInLine.map(i => i.str).join(' ');
+
+                                const dniMatch = lineStr.match(/\b\d{7,8}\b/);
+                                if (dniMatch) {
+                                    const dni = dniMatch[0];
+                                    const extractedName = lineStr.replace(dni, '').replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+                                    if (!appState.padron.includes(dni)) {
+                                        appState.padron.push(dni);
+                                        totalRegistros++;
+                                    }
+                                    if (extractedName.length > 2) {
+                                        appState.padronNames[dni] = extractedName.toUpperCase();
+                                    }
+                                }
+                            });
+                        }
+
+                        localStorage.setItem('bue_padron', JSON.stringify(appState.padron));
+                        localStorage.setItem('bue_padron_names', JSON.stringify(appState.padronNames));
+                        updatePadronStatusUI();
+                        alert(`¡Éxito! Se procesaron ${totalRegistros} alumnos del PDF vinculando Nombre y DNI.`);
+                    } catch (err) {
+                        alert('Error al procesar la estructura del PDF.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                let dnisFound = [];
+
+                workbook.SheetNames.forEach(sheetName => {
+                    const sheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+                    json.forEach(row => {
+                        let rowDni = null;
+                        let rowName = '';
+
+                        row.forEach(cell => {
+                            if (cell) {
+                                const val = cell.toString().trim();
+                                if (/^\d{7,8}\b/.test(val)) {
+                                    rowDni = val;
+                                } else if (isNaN(val) && val.length > 2) {
+                                    rowName += ' ' + val;
+                                }
+                            }
+                        });
+
+                        if (rowDni) {
+                            dnisFound.push(rowDni);
+                            if (rowName.trim()) {
+                                appState.padronNames[rowDni] = rowName.trim().toUpperCase();
+                            }
+                        }
+                    });
+                });
+
+                if (dnisFound.length > 0) {
+                    appState.padron = Array.from(new Set([...appState.padron, ...dnisFound]));
+                    localStorage.setItem('bue_padron', JSON.stringify(appState.padron));
+                    localStorage.setItem('bue_padron_names', JSON.stringify(appState.padronNames));
+                    updatePadronStatusUI();
+                    alert(`Éxito: Se importaron ${dnisFound.length} alumnos con sus nombres.`);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.clearPadronData = function() {
+            if (confirm('¿Borrar completamente el padrón cargado (DNI y Nombres)?')) {
+                appState.padron = [];
+                appState.padronNames = {};
+                localStorage.removeItem('bue_padron');
+                localStorage.removeItem('bue_padron_names');
+                updatePadronStatusUI();
+                alert('Padrón electoral borrado.');
+            }
+        };
+
+        window.onload = function() {
+            renderCandidateCards();
+            updateStepProgress(1);
+            updateSchoolLogoUI();
+        };
+    </script>
+</body>
+</html>
