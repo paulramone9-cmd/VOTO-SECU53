@@ -397,6 +397,27 @@
                     </button>
                 </div>
 
+                <!-- SINCRONIZACIÓN CON GOOGLE SHEETS -->
+                <div class="pt-3 border-t border-sky-200 space-y-2">
+                    <h4 class="font-black text-xs uppercase text-sky-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-table text-sky-700"></i> Sincronización con Google Sheets
+                    </h4>
+                    <p class="text-[11px] text-sky-700 font-bold">
+                        Pegue la URL de implementación de Google Apps Script para registrar la participación y los votos anónimos en su hoja de cálculo.
+                    </p>
+                    <div class="flex flex-col sm:flex-row items-center gap-2">
+                        <input type="url" id="sheets-url-input" placeholder="https://script.google.com/macros/s/....../exec"
+                            class="p-2 border rounded text-xs font-mono w-full">
+                        <button type="button" onclick="saveGoogleSheetsUrl()"
+                            class="bg-sky-700 text-white font-bold py-2 px-4 rounded text-xs uppercase hover:bg-sky-800 cursor-pointer shrink-0">
+                            Guardar conexión
+                        </button>
+                    </div>
+                    <p id="sheets-connection-status" class="text-[11px] font-bold text-slate-600">
+                        Sin conexión configurada. Los votos se guardan localmente.
+                    </p>
+                </div>
+
                 <!-- CAMBIO DE PIN DE AUTORIDAD DE MESA -->
                 <div class="pt-2 border-t border-sky-200 space-y-2">
                     <h4 class="font-black text-xs uppercase text-sky-900 flex items-center gap-1.5">
@@ -565,7 +586,7 @@
             enteredVoterName: '',
             selectedCandidate: null,
             adminPIN: localStorage.getItem('bue_admin_pin') || '1234',
-            sheetsUrl: localStorage.getItem('bue_sheets_url') || 'https://script.google.com/macros/s/AKfycbx65DkErxd6Ta8-f9lOLrgz-zVPpttDBCoQKR7dZqKeq7ymdVqu6Z1XZhTrjI8FS4LS/exec',
+            sheetsUrl: localStorage.getItem('bue_sheets_url') || '',
             schoolLogo: localStorage.getItem('bue_school_logo') || 'logo transp - copia.jpg',
             schoolName: localStorage.getItem('bue_school_name') || 'Colegio Secundario de Artes N° 49 • Tilcara',
             schoolColors: JSON.parse(localStorage.getItem('bue_school_colors') || '{"primary":"#0070BA","header":"#0062a8","accent":"#e63946"}'),
@@ -912,6 +933,9 @@
             updateSchoolLogoUI();
             applySchoolAppearance();
             updatePadronStatusUI();
+            const sheetsInput = document.getElementById('sheets-url-input');
+            if (sheetsInput) sheetsInput.value = appState.sheetsUrl || '';
+            updateSheetsConnectionStatus();
         };
 
         function updatePadronStatusUI() {
@@ -1462,23 +1486,53 @@
             }, 1000);
         };
 
-        // ENVÍO COMPLETO A GOOGLE SHEETS
+        // CONFIGURACIÓN Y SINCRONIZACIÓN CON GOOGLE SHEETS
+        window.saveGoogleSheetsUrl = function() {
+            const input = document.getElementById('sheets-url-input');
+            const url = (input?.value || '').trim();
+            if (url && !/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)) {
+                alert('La URL no parece ser una URL válida de implementación de Google Apps Script.');
+                return;
+            }
+            appState.sheetsUrl = url;
+            if (url) localStorage.setItem('bue_sheets_url', url);
+            else localStorage.removeItem('bue_sheets_url');
+            updateSheetsConnectionStatus();
+            alert(url
+                ? 'URL de Google Sheets guardada. Los próximos votos se enviarán a la planilla.'
+                : 'Conexión eliminada. Los votos seguirán guardándose localmente.');
+        };
+
+        function updateSheetsConnectionStatus() {
+            const status = document.getElementById('sheets-connection-status');
+            if (!status) return;
+            if (appState.sheetsUrl) {
+                status.textContent = 'URL configurada. Los próximos votos se enviarán a Google Sheets.';
+                status.className = 'text-[11px] font-bold text-emerald-700';
+            } else {
+                status.textContent = 'Sin conexión configurada. Los votos se guardan localmente.';
+                status.className = 'text-[11px] font-bold text-slate-600';
+            }
+        }
+
         function sendToGoogleSheets(payload) {
             if (!appState.sheetsUrl) return;
-
             const formData = new URLSearchParams();
             formData.append('dni', payload.dni);
             formData.append('nombre', payload.nombre);
             formData.append('lista', payload.lista);
             formData.append('timestamp', payload.timestamp);
-            formData.append('hash', payload.hash);
 
             fetch(appState.sheetsUrl, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
                 body: formData.toString()
-            }).catch(err => console.log('Sincronización retenida en cola offline'));
+            }).then(() => {
+                console.log('Solicitud de sincronización enviada a Google Sheets.');
+            }).catch(err => {
+                console.error('No se pudo enviar el registro a Google Sheets:', err);
+            });
         }
 
         window.processPadronText = function() {
