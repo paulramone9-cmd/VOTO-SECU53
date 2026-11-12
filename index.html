@@ -979,21 +979,24 @@
             appState.candidates.forEach(c => counts[c.partyName] = 0);
             counts['VOTO EN BLANCO'] = 0;
 
-            appState.voteLogs.forEach(v => {
-                if (counts[v.lista] !== undefined) {
-                    counts[v.lista]++;
-                } else {
-                    counts[v.lista] = 1;
-                }
-            });
+            if (appState.globalVoteCounts) {
+                Object.keys(appState.globalVoteCounts).forEach(label => { counts[label] = Number(appState.globalVoteCounts[label] || 0); });
+            } else {
+                appState.voteLogs.forEach(v => {
+                    if (counts[v.lista] !== undefined) counts[v.lista]++;
+                    else counts[v.lista] = 1;
+                });
+            }
 
             // Actualizar tabla
             const tbody = document.getElementById('votos-table-body');
             const totalCountEl = document.getElementById('total-votos-count');
-            if (totalCountEl) totalCountEl.textContent = appState.voteLogs.length;
+            if (totalCountEl) totalCountEl.textContent = appState.globalVoteTotal !== undefined ? appState.globalVoteTotal : appState.voteLogs.length;
 
             if (tbody) {
-                if (appState.voteLogs.length === 0) {
+                if (appState.globalVoteCounts) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500">Resultados globales sincronizados. Por resguardo del secreto del voto, la planilla no vincula votantes con listas. Los registros detallados que siguen son únicamente locales.</td></tr>`;
+                } else if (appState.voteLogs.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400">Sin votos registrados en la urna local.</td></tr>`;
                 } else {
                     tbody.innerHTML = appState.voteLogs.map((v, index) => `
@@ -1468,6 +1471,7 @@
             };
 
             sendToGoogleSheets(votePayload);
+            appState.globalVoteCounts = null; appState.globalVoteTotal = undefined;
 
             document.getElementById('receipt-hash').textContent = hash;
             switchView('thanks');
@@ -1823,6 +1827,169 @@
                 alert('Padrón electoral borrado.');
             }
         };
+
+
+        // SINCRONIZACIÓN CENTRALIZADA: la configuración y el estado de la urna
+        // se comparten mediante Google Apps Script. Los votos siguen separados
+        // entre participación (identidad) y resultados anónimos.
+        let cloudSyncReady = false;
+        let cloudApplying = false;
+        let cloudSaveTimer = null;
+        let lastCloudConfigJSON = '';
+        const CLOUD_CONFIG_KEYS = new Set([
+            'bue_school_name','bue_school_colors','bue_school_logo',
+            'bue_autoridades_list','bue_candidates_config','bue_padron',
+            'bue_padron_names','bue_sheets_url'
+        ]);
+        const nativeStorageSetItem = localStorage.setItem.bind(localStorage);
+        const nativeStorageRemoveItem = localStorage.removeItem.bind(localStorage);
+
+        function getCloudConfig() {
+            return {
+                schoolName: appState.schoolName,
+                schoolColors: appState.schoolColors,
+                schoolLogo: (appState.schoolLogo || '').length < 40000 ? appState.schoolLogo : '',
+                autoridades: appState.autoridades,
+                candidates: appState.candidates,
+                padron: appState.padron,
+                padronNames: appState.padronNames,
+                sheetsUrl: appState.sheetsUrl
+            };
+        }
+
+        function saveCloudConfig() {
+            if (!cloudSyncReady || cloudApplying || !appState.sheetsUrl) return;
+            const config = getCloudConfig();
+            const serialized = JSON.stringify(config);
+            if (serialized === lastCloudConfigJSON) return;
+            lastCloudConfigJSON = serialized;
+            submitCloudForm({ action: 'saveConfig', config: serialized });
+            setCloudSyncStatus('Cambios enviados para sincronizar…', 'pending');
+        }
+
+        function scheduleCloudConfigSave() {
+            if (!cloudSyncReady || cloudApplying) return;
+            clearTimeout(cloudSaveTimer);
+            cloudSaveTimer = setTimeout(saveCloudConfig, 700);
+        }
+
+        // Captura las mismas operaciones de guardado que ya realiza el sistema,
+        // sin modificar cada botón ni cambiar el funcionamiento local.
+        localStorage.setItem = function(key, value) {
+            nativeStorageSetItem(key, value);
+            if (CLOUD_CONFIG_KEYS.has(String(key))) scheduleCloudConfigSave();
+        };
+        localStorage.removeItem = function(key) {
+            nativeStorageRemoveItem(key);
+            if (CLOUD_CONFIG_KEYS.has(String(key))) scheduleCloudConfigSave();
+        };
+
+        function setCloudSyncStatus(message, state) {
+            const el = document.getElementById('sheets-connection-status');
+            if (!el) return;
+            el.textContent = message;
+            el.className = 'text-[11px] font-bold ' + (state === 'ok' ? 'text-emerald-700' : state === 'error' ? 'text-rose-700' : 'text-amber-700');
+        }
+
+        function submitCloudForm(fields) {
+            if (!appState.sheetsUrl) return;
+            let iframe = document.getElementById('google-sheets-submit-frame');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.name = 'google-sheets-submit-frame';
+                iframe.id = 'google-sheets-submit-frame';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = appState.sheetsUrl;
+            form.target = iframe.name;
+            form.acceptCharset = 'UTF-8';
+            form.style.display = 'none';
+            Object.entries(fields).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = name; input.value = String(value ?? '');
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            try { form.submit(); } catch (e) { setCloudSyncStatus('No se pudo enviar la actualización.', 'error'); }
+            setTimeout(() => form.remove(), 1500);
+        }
+
+        function requestCloudState() {
+            if (!appState.sheetsUrl) return;
+            const callbackName = 'bueCloudCallback_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+            const script = document.createElement('script');
+            const separator = appState.sheetsUrl.includes('?') ? '&' : '?';
+            window[callbackName] = function(data) {
+                try { applyCloudState(data); }
+                catch (e) { console.error('Error aplicando sincronización:', e); }
+                finally { delete window[callbackName]; script.remove(); }
+            };
+            script.onerror = function() {
+                setCloudSyncStatus('No se pudo consultar Google Sheets. Revise la URL y la implementación.', 'error');
+                delete window[callbackName]; script.remove();
+            };
+            script.src = appState.sheetsUrl + separator + 'action=state&callback=' + callbackName + '&_=' + Date.now();
+            document.head.appendChild(script);
+        }
+
+        function applyCloudState(data) {
+            if (!data || data.ok !== true) throw new Error(data?.error || 'Respuesta inválida');
+            if (data.config) {
+                // No reemplazar campos mientras el administrador está editando.
+                const adminOpen = !document.getElementById('admin-panel-modal')?.classList.contains('hidden');
+                if (!adminOpen) {
+                    cloudApplying = true;
+                    const c = data.config;
+                    if (c.schoolName) appState.schoolName = c.schoolName;
+                    if (c.schoolColors) appState.schoolColors = c.schoolColors;
+                    if (c.schoolLogo) appState.schoolLogo = c.schoolLogo;
+                    if (Array.isArray(c.autoridades)) appState.autoridades = c.autoridades;
+                    if (Array.isArray(c.candidates)) appState.candidates = c.candidates;
+                    if (Array.isArray(c.padron)) appState.padron = c.padron.map(String);
+                    if (c.padronNames && typeof c.padronNames === 'object') appState.padronNames = c.padronNames;
+                    if (c.sheetsUrl) appState.sheetsUrl = c.sheetsUrl;
+                    nativeStorageSetItem('bue_school_name', appState.schoolName);
+                    nativeStorageSetItem('bue_school_colors', JSON.stringify(appState.schoolColors));
+                    nativeStorageSetItem('bue_school_logo', appState.schoolLogo || '');
+                    nativeStorageSetItem('bue_autoridades_list', JSON.stringify(appState.autoridades));
+                    nativeStorageSetItem('bue_candidates_config', JSON.stringify(appState.candidates));
+                    nativeStorageSetItem('bue_padron', JSON.stringify(appState.padron));
+                    nativeStorageSetItem('bue_padron_names', JSON.stringify(appState.padronNames));
+                    nativeStorageSetItem('bue_sheets_url', appState.sheetsUrl);
+                    applySchoolAppearance(); updateSchoolLogoUI(); renderCandidateCards(); updatePadronStatusUI();
+                    lastCloudConfigJSON = JSON.stringify(getCloudConfig());
+                    cloudApplying = false;
+                }
+            } else if (!lastCloudConfigJSON) {
+                // Primera puesta en marcha: cargar la configuración inicial del equipo administrador.
+                lastCloudConfigJSON = '';
+                cloudSyncReady = true;
+                saveCloudConfig();
+            }
+            if (Array.isArray(data.votedDNIs)) {
+                appState.votedDNIs = data.votedDNIs.map(String);
+                nativeStorageSetItem('bue_voted_dnis', JSON.stringify(appState.votedDNIs));
+            }
+            if (data.voteCounts && typeof data.voteCounts === 'object') {
+                appState.globalVoteCounts = data.voteCounts;
+                appState.globalVoteTotal = Number(data.voteTotal || 0);
+                // Actualizar panel de escrutinio si está abierto; no se reconstruye
+                // una tabla que relacione identidad y elección.
+                if (typeof renderEscrutinioPanel === 'function') renderEscrutinioPanel();
+            }
+            cloudSyncReady = true;
+            setCloudSyncStatus('Sincronización activa. Última consulta: ' + new Date().toLocaleTimeString('es-AR'), 'ok');
+        }
+
+        window.addEventListener('load', function() {
+            if (appState.sheetsUrl) {
+                requestCloudState();
+                setInterval(requestCloudState, 5000);
+            }
+        });
 
         window.onload = function() {
             renderCandidateCards();
