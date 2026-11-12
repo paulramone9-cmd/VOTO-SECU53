@@ -167,7 +167,7 @@
                     </div>
 
                     <div class="relative max-w-xs mx-auto">
-                        <input type="text" id="dni-input" readonly placeholder="00000000" 
+                        <input type="text" id="dni-input" inputmode="numeric" autocomplete="off" maxlength="8" pattern="[0-9]{7,8}" placeholder="00000000" aria-label="Ingrese el número de DNI"
                             class="w-full text-center text-3xl font-black font-mono tracking-widest bg-slate-50 border-2 border-bue-blue text-slate-800 rounded-lg py-2 outline-none shadow-inner">
                         <button type="button" onclick="clearDNIInput()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-2 text-sm font-bold cursor-pointer">
                             <i class="fa-solid fa-circle-xmark text-xl"></i>
@@ -887,6 +887,63 @@
             const errDiv = document.getElementById('dni-error');
             if (errDiv) errDiv.classList.add('hidden');
         }
+
+        // Entrada por teclado físico: admite la fila numérica y el teclado numérico.
+        // El teclado virtual de la pantalla continúa funcionando mediante pressNum().
+        (function enablePhysicalKeyboardForDNI() {
+            const dniInput = document.getElementById('dni-input');
+            if (!dniInput) return;
+
+            dniInput.addEventListener('input', function() {
+                const cleaned = this.value.replace(/\D/g, '').slice(0, 8);
+                if (this.value !== cleaned) this.value = cleaned;
+                appState.enteredDNI = cleaned;
+                if (cleaned) hideDNIError();
+            });
+
+            document.addEventListener('keydown', function(event) {
+                const loginView = document.getElementById('login-view');
+                const adminModal = document.getElementById('admin-auth-modal');
+                const adminPanel = document.getElementById('admin-panel-modal');
+                const loginVisible = loginView && !loginView.classList.contains('hidden');
+                const adminAuthVisible = adminModal && !adminModal.classList.contains('hidden');
+                const adminPanelVisible = adminPanel && !adminPanel.classList.contains('hidden');
+                if (!loginVisible || adminAuthVisible || adminPanelVisible) return;
+
+                const target = event.target;
+                const isDniField = target === dniInput;
+                const isEditable = target && (
+                    target.isContentEditable ||
+                    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+                );
+
+                // Si el cursor está en otro campo editable, no interferir con su escritura.
+                if (isEditable && !isDniField) return;
+
+                if (/^[0-9]$/.test(event.key)) {
+                    if (!isDniField) {
+                        event.preventDefault();
+                        dniInput.focus();
+                        window.pressNum(event.key);
+                    }
+                    return;
+                }
+
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    window.startVoting();
+                    return;
+                }
+
+                // Cuando el foco está en la página, Backspace borra el último dígito.
+                if (event.key === 'Backspace' && !isDniField && !isEditable) {
+                    event.preventDefault();
+                    dniInput.value = dniInput.value.slice(0, -1);
+                    appState.enteredDNI = dniInput.value;
+                    hideDNIError();
+                }
+            });
+        })();
 
         function showDNIError(msg) {
             const errDiv = document.getElementById('dni-error');
