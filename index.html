@@ -576,9 +576,13 @@
                 </h4>
                 <p class="text-xs text-rose-600 font-bold">Opciones exclusivas para la Autoridad de Mesa antes o después del escrutinio.</p>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-1">
+                    <button type="button" onclick="clearAnonymousChartRecords()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-lg text-xs uppercase shadow cursor-pointer flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-chart-column"></i> Borrar resultados de gráficos
+                    </button>
+
                     <button type="button" onclick="clearVotedDNIs()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold p-3 rounded-lg text-xs uppercase shadow cursor-pointer flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-rotate-left"></i> Borrar Votos (Limpiar Urna)
+                        <i class="fa-solid fa-rotate-left"></i> Reiniciar elección e historial
                     </button>
                     
                     <button type="button" onclick="clearPadronData()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold p-3 rounded-lg text-xs uppercase shadow cursor-pointer flex items-center justify-center gap-2">
@@ -589,6 +593,7 @@
                         <i class="fa-solid fa-triangle-exclamation"></i> Restablecer De Fábrica
                     </button>
                 </div>
+                <p class="text-[11px] text-rose-700">“Borrar resultados” elimina los votos anónimos y deja intacto el registro de participación. “Reiniciar elección” elimina tanto los resultados como el historial nominal y habilita nuevamente a todos los DNI. Ambas acciones se aplican también en Google Sheets.</p>
             </div>
 
         </div>
@@ -1251,15 +1256,47 @@
             alert('Datos de Autoridad de Mesa guardados correctamente.');
         };
 
-        window.clearVotedDNIs = function() {
-            if (confirm('¿Reiniciar la urna digital? Todos los DNI registrados como votados podrán volver a emitir su voto.')) {
+        function clearLocalElectionRecords_(clearParticipation) {
+            appState.anonymousVotes = [];
+            appState.globalVoteCounts = {};
+            appState.globalVoteTotal = 0;
+            localStorage.setItem('bue_anonymous_votes', JSON.stringify([]));
+            if (clearParticipation) {
                 appState.votedDNIs = [];
                 appState.voteLogs = [];
-                localStorage.removeItem('bue_voted_dnis');
-                localStorage.removeItem('bue_vote_logs');
-                renderEscrutinioPanel();
-                alert('Urna reiniciada con éxito. Registros de voto limpiados.');
+                appState.globalParticipationTotal = 0;
+                localStorage.setItem('bue_voted_dnis', JSON.stringify([]));
+                localStorage.setItem('bue_vote_logs', JSON.stringify([]));
             }
+            renderEscrutinioPanel();
+            renderSeniorAnonymousAudit();
+        }
+
+        function sendAdminMaintenanceAction(action) {
+            if (!appState.sheetsUrl) {
+                alert('No hay una conexión de Google Sheets configurada. La limpieza solo se puede realizar localmente.');
+                return false;
+            }
+            const pin = appState.adminAccessLevel === 'superior' ? '5353' : '1234';
+            submitCloudForm({ action: action, pin: pin });
+            setCloudSyncStatus('Solicitud de limpieza enviada a Google Sheets…', 'pending');
+            return true;
+        }
+
+        window.clearAnonymousChartRecords = function() {
+            if (!confirm('¿Borrar todos los votos anónimos que alimentan los gráficos de barras y torta? El registro nominal de participación se conservará.')) return;
+            if (!sendAdminMaintenanceAction('clearAnonymousVotes')) return;
+            clearLocalElectionRecords_(false);
+            alert('Se solicitó borrar los resultados de los gráficos en Google Sheets. La actualización se reflejará en los dispositivos conectados en unos segundos.');
+            setTimeout(() => requestCloudState(), 1800);
+        };
+
+        window.clearVotedDNIs = function() {
+            if (!confirm('¿REINICIAR LA ELECCIÓN PARA HACER UNA PRUEBA O COMENZAR LA VOTACIÓN?\n\nSe borrarán de Google Sheets todos los votos anónimos y todo el historial nominal de participación. Todos los DNI quedarán habilitados nuevamente. Se conservarán el padrón, las listas, los colores y la configuración. Esta acción no se puede deshacer.')) return;
+            if (!sendAdminMaintenanceAction('resetElectionData')) return;
+            clearLocalElectionRecords_(true);
+            alert('Se solicitó el reinicio completo de la elección. Los demás dispositivos recibirán el estado limpio al sincronizar.');
+            setTimeout(() => requestCloudState(), 1800);
         };
 
         window.clearPadronData = function() {
@@ -1931,7 +1968,7 @@
 
         function submitCloudForm(fields) {
             if (!appState.sheetsUrl) return;
-            const frameName = 'google-sheets-submit-frame-' + String(payload.action || 'default');
+            const frameName = 'google-sheets-submit-frame-' + String(fields.action || 'default');
             let iframe = document.getElementById(frameName);
             if (!iframe) {
                 iframe = document.createElement('iframe');
