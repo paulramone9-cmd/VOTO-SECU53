@@ -467,7 +467,7 @@
                 <!-- TABLA DETALLADA DE VOTOS REGISTRADOS -->
                 <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-black uppercase text-slate-700">Registro Nominal de Votos (<span id="total-votos-count">0</span> emitidos)</span>
+                        <span class="text-xs font-black uppercase text-slate-700">Registro Nominal de Participación (<span id="total-votos-count">0</span> votantes)</span>
                     </div>
                     <div class="max-h-52 overflow-y-auto border border-slate-200 rounded-lg">
                         <table class="w-full text-left border-collapse text-xs">
@@ -475,16 +475,32 @@
                                 <tr>
                                     <th class="p-2">DNI</th>
                                     <th class="p-2">Nombre y Apellido</th>
-                                    <th class="p-2">Opción Votada</th>
                                     <th class="p-2">Fecha / Hora</th>
-                                    <th class="p-2">Firma Digital</th>
-                                    <th class="p-2 text-center">Acciones</th>
+                                    <th class="p-2">Registro</th>
                                 </tr>
                             </thead>
                             <tbody id="votos-table-body" class="divide-y divide-slate-200 font-medium">
                                 <tr>
-                                    <td colspan="6" class="p-3 text-center text-slate-400">Sin votos registrados en la urna local.</td>
+                                    <td colspan="4" class="p-3 text-center text-slate-400">Sin participaciones registradas.</td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="senior-audit-section" class="hidden bg-indigo-50 p-4 rounded-xl border border-indigo-200 space-y-2">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="text-xs font-black uppercase text-indigo-900"><i class="fa-solid fa-user-shield mr-1"></i> Registro de votos anónimos · Autoridades superiores</span>
+                        <span class="text-[10px] font-bold text-indigo-700">Acceso PIN 5353</span>
+                    </div>
+                    <p class="text-[11px] text-indigo-800">Este registro muestra únicamente fecha y opción elegida. No incluye DNI, nombre ni datos que permitan identificar a quien votó.</p>
+                    <div class="max-h-56 overflow-y-auto border border-indigo-200 rounded-lg bg-white">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-indigo-100 border-b border-indigo-200 font-black uppercase text-indigo-900 sticky top-0">
+                                <tr><th class="p-2">Fecha / Hora</th><th class="p-2">Opción registrada</th></tr>
+                            </thead>
+                            <tbody id="senior-anonymous-votes-body" class="divide-y divide-indigo-100 font-medium">
+                                <tr><td colspan="2" class="p-3 text-center text-slate-400">No hay registros anónimos disponibles.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -597,6 +613,8 @@
             ])),
             votedDNIs: JSON.parse(localStorage.getItem('bue_voted_dnis') || '[]'),
             voteLogs: JSON.parse(localStorage.getItem('bue_vote_logs') || '[]'),
+            anonymousVotes: JSON.parse(localStorage.getItem('bue_anonymous_votes') || '[]'),
+            adminAccessLevel: 'mesa',
             padron: JSON.parse(localStorage.getItem('bue_padron') || '[]'),
             padronNames: JSON.parse(localStorage.getItem('bue_padron_names') || '{}'),
             results: JSON.parse(localStorage.getItem('bue_results') || '{}'),
@@ -646,6 +664,32 @@
             localStorage.setItem('bue_padron', JSON.stringify(appState.padron));
             localStorage.setItem('bue_padron_names', JSON.stringify(appState.padronNames));
         }
+
+        // Migración de registros locales anteriores: separa participación e intención de voto.
+        // Las filas antiguas se des vinculan en el navegador y las opciones pasan a un registro anónimo.
+        (function migrateLegacyLocalVoteLogs() {
+            const legacy = Array.isArray(appState.voteLogs) ? appState.voteLogs : [];
+            const anonymous = Array.isArray(appState.anonymousVotes) ? appState.anonymousVotes : [];
+            const seen = new Set(anonymous.map(v => `${v.timestamp || v.fecha || ''}|${v.lista || v.opcion || ''}`));
+            legacy.forEach(v => {
+                if (v && v.lista) {
+                    const key = `${v.timestamp || ''}|${v.lista}`;
+                    if (!seen.has(key)) {
+                        anonymous.push({ fecha: v.timestamp || '', lista: v.lista });
+                        seen.add(key);
+                    }
+                }
+            });
+            appState.voteLogs = legacy.map(v => {
+                const clean = { ...v };
+                delete clean.lista;
+                delete clean.opcion;
+                return clean;
+            });
+            appState.anonymousVotes = anonymous;
+            localStorage.setItem('bue_vote_logs', JSON.stringify(appState.voteLogs));
+            localStorage.setItem('bue_anonymous_votes', JSON.stringify(appState.anonymousVotes));
+        })();
 
         let barChartInstance = null;
         let pieChartInstance = null;
@@ -917,15 +961,22 @@
         };
 
         window.verifyAdminPIN = function() {
-            if (document.getElementById('admin-pin-input').value === appState.adminPIN) {
+            const entered = document.getElementById('admin-pin-input').value;
+            if (entered === appState.adminPIN) {
                 closeAdminAuthModal();
-                openAdminPanel();
+                openAdminPanel('mesa');
+            } else if (entered === '5353') {
+                closeAdminAuthModal();
+                openAdminPanel('superior');
             } else {
                 document.getElementById('pin-error-msg').classList.remove('hidden');
             }
         };
 
-        window.openAdminPanel = function() {
+        window.openAdminPanel = function(accessLevel = 'mesa') {
+            appState.adminAccessLevel = accessLevel;
+            const seniorAudit = document.getElementById('senior-audit-section');
+            if (seniorAudit) seniorAudit.classList.toggle('hidden', accessLevel !== 'superior');
             document.getElementById('admin-panel-modal').classList.remove('hidden');
             renderAdminCandidatesEditor();
             renderEscrutinioPanel();
@@ -936,6 +987,7 @@
             const sheetsInput = document.getElementById('sheets-url-input');
             if (sheetsInput) sheetsInput.value = appState.sheetsUrl || '';
             updateSheetsConnectionStatus();
+            if (appState.sheetsUrl && typeof requestCloudState === 'function') requestCloudState();
         };
 
         function updatePadronStatusUI() {
@@ -972,103 +1024,113 @@
             document.getElementById('admin-panel-modal').classList.add('hidden');
         };
 
-        // RENDERING Y GRÁFICOS DEL ESCRUTINIO EN VIVO
-        function renderEscrutinioPanel() {
-            // Contar votos por lista
-            const counts = {};
-            appState.candidates.forEach(c => counts[c.partyName] = 0);
-            counts['VOTO EN BLANCO'] = 0;
-
-            if (appState.globalVoteCounts) {
-                Object.keys(appState.globalVoteCounts).forEach(label => { counts[label] = Number(appState.globalVoteCounts[label] || 0); });
+        // Devuelve los cómputos anónimos. Los alias conservan los votos de listas renombradas.
+        function buildAnonymousResultCounts() {
+            const source = {};
+            if (appState.globalVoteCounts && typeof appState.globalVoteCounts === 'object') {
+                Object.entries(appState.globalVoteCounts).forEach(([k, v]) => source[k] = Number(v || 0));
             } else {
-                appState.voteLogs.forEach(v => {
-                    if (counts[v.lista] !== undefined) counts[v.lista]++;
-                    else counts[v.lista] = 1;
+                (appState.anonymousVotes || []).forEach(v => {
+                    const label = String(v.lista || v.opcion || '').trim();
+                    if (label) source[label] = (source[label] || 0) + 1;
                 });
             }
 
-            // Actualizar tabla
+            const counts = {};
+            const consumed = new Set();
+            (appState.candidates || []).forEach(c => {
+                const names = [c.partyName, ...(Array.isArray(c.partyAliases) ? c.partyAliases : [])].filter(Boolean);
+                let total = 0;
+                names.forEach(name => {
+                    if (Object.prototype.hasOwnProperty.call(source, name)) {
+                        total += Number(source[name] || 0);
+                        consumed.add(name);
+                    }
+                });
+                counts[c.partyName || c.listNumber || 'Lista sin nombre'] = total;
+            });
+
+            Object.entries(source).forEach(([name, value]) => {
+                if (name === 'VOTO EN BLANCO') return;
+                if (!consumed.has(name)) counts[`LISTA RETIRADA: ${name}`] = Number(value || 0);
+            });
+            counts['VOTO EN BLANCO'] = Number(source['VOTO EN BLANCO'] || 0);
+            return counts;
+        }
+
+        function renderSeniorAnonymousAudit() {
+            const section = document.getElementById('senior-audit-section');
+            const tbody = document.getElementById('senior-anonymous-votes-body');
+            if (!section || !tbody || appState.adminAccessLevel !== 'superior') return;
+            const rows = Array.isArray(appState.anonymousVotes) ? appState.anonymousVotes : [];
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="2" class="p-3 text-center text-slate-400">No hay registros anónimos disponibles.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.slice().reverse().map(v => {
+                const date = String(v.fecha || v.timestamp || '');
+                const option = String(v.lista || v.opcion || '');
+                return `<tr><td class="p-2 text-slate-600">${escapeHtml(date)}</td><td class="p-2 font-bold">${escapeHtml(option)}</td></tr>`;
+            }).join('');
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+
+        // RENDERING Y GRÁFICOS DEL ESCRUTINIO EN VIVO
+        function renderEscrutinioPanel() {
+            const counts = buildAnonymousResultCounts();
             const tbody = document.getElementById('votos-table-body');
             const totalCountEl = document.getElementById('total-votos-count');
-            if (totalCountEl) totalCountEl.textContent = appState.globalVoteTotal !== undefined ? appState.globalVoteTotal : appState.voteLogs.length;
+            const nominalRows = Array.isArray(appState.voteLogs) ? appState.voteLogs : [];
+            const totalParticipation = appState.globalParticipationTotal !== undefined
+                ? appState.globalParticipationTotal : nominalRows.length;
+            if (totalCountEl) totalCountEl.textContent = totalParticipation;
 
             if (tbody) {
-                if (appState.globalVoteCounts) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500">Resultados globales sincronizados. Por resguardo del secreto del voto, la planilla no vincula votantes con listas. Los registros detallados que siguen son únicamente locales.</td></tr>`;
-                } else if (appState.voteLogs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400">Sin votos registrados en la urna local.</td></tr>`;
+                if (nominalRows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">Sin participaciones registradas.</td></tr>';
                 } else {
-                    tbody.innerHTML = appState.voteLogs.map((v, index) => `
+                    tbody.innerHTML = nominalRows.map(v => `
                         <tr class="hover:bg-slate-50">
-                            <td class="p-2 font-mono font-bold">${v.dni}</td>
-                            <td class="p-2 font-bold text-slate-800">${v.nombre}</td>
-                            <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-black text-white ${v.lista === 'VOTO EN BLANCO' ? 'bg-slate-500' : 'bg-sky-700'}">${v.lista}</span></td>
-                            <td class="p-2 text-slate-500 text-[11px]">${v.timestamp}</td>
-                            <td class="p-2 font-mono text-[10px] text-slate-400">${v.hash}</td>
-                            <td class="p-2 text-center">
-                                <button type="button" onclick="deleteSingleVote(${index})" title="Anular/Borrar este voto para liberar el DNI" class="bg-rose-100 hover:bg-rose-600 text-rose-700 hover:text-white px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer">
-                                    <i class="fa-solid fa-trash-can mr-1"></i>Anular
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('');
+                            <td class="p-2 font-mono font-bold">${escapeHtml(v.dni || '')}</td>
+                            <td class="p-2 font-bold text-slate-800">${escapeHtml(v.nombre || '')}</td>
+                            <td class="p-2 text-slate-500 text-[11px]">${escapeHtml(v.timestamp || v.fecha || '')}</td>
+                            <td class="p-2 font-mono text-[10px] text-slate-400">${escapeHtml(v.hash || 'REGISTRO DE PARTICIPACIÓN')}</td>
+                        </tr>`).join('');
                 }
             }
 
-            // Datos para gráficos
             const labels = Object.keys(counts);
             const dataValues = Object.values(counts);
             const colors = labels.map(label => {
                 if (label === 'VOTO EN BLANCO') return '#64748b';
-                const cand = appState.candidates.find(c => c.partyName === label);
-                return cand ? cand.color : '#0284c7';
+                const cleanLabel = label.replace(/^LISTA RETIRADA: /, '');
+                const cand = (appState.candidates || []).find(c => c.partyName === cleanLabel || (c.partyAliases || []).includes(cleanLabel));
+                return cand ? (cand.color || '#0284c7') : '#94a3b8';
             });
 
-            // Chart de Barras
             const ctxBar = document.getElementById('chart-bar')?.getContext('2d');
             if (ctxBar) {
                 if (barChartInstance) barChartInstance.destroy();
                 barChartInstance = new Chart(ctxBar, {
                     type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Votos',
-                            data: dataValues,
-                            backgroundColor: colors,
-                            borderRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-                    }
+                    data: { labels, datasets: [{ label: 'Votos', data: dataValues, backgroundColor: colors, borderRadius: 6 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
                 });
             }
 
-            // Chart de Torta
             const ctxPie = document.getElementById('chart-pie')?.getContext('2d');
             if (ctxPie) {
                 if (pieChartInstance) pieChartInstance.destroy();
                 pieChartInstance = new Chart(ctxPie, {
                     type: 'pie',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: dataValues,
-                            backgroundColor: colors
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
-                    }
+                    data: { labels, datasets: [{ data: dataValues, backgroundColor: colors }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
                 });
             }
+            renderSeniorAnonymousAudit();
         }
 
         // ELIMINAR / ANULAR UN VOTO INDIVIDUAL Y LIBERAR EL DNI
@@ -1131,20 +1193,15 @@
             doc.setTextColor(40, 40, 40);
             doc.setFontSize(10);
             doc.text(`Fecha y Hora de Emisión: ${fechaHora}`, 14, 35);
-            doc.text(`Mesa N° 1 • Total de Votantes Sufragantes: ${appState.voteLogs.length}`, 14, 41);
+            const participationTotal = appState.globalParticipationTotal !== undefined ? appState.globalParticipationTotal : appState.voteLogs.length;
+            doc.text(`Mesa N° 1 • Total de Votantes Sufragantes: ${participationTotal}`, 14, 41);
 
-            // Resumen de Votos
-            const counts = {};
-            appState.candidates.forEach(c => counts[c.partyName] = 0);
-            counts['VOTO EN BLANCO'] = 0;
-            appState.voteLogs.forEach(v => {
-                if (counts[v.lista] !== undefined) counts[v.lista]++;
-                else counts[v.lista] = 1;
-            });
-
+            // Resumen de votos anónimos
+            const counts = buildAnonymousResultCounts();
+            const anonymousTotal = Object.values(counts).reduce((a, b) => a + Number(b || 0), 0);
             const summaryRows = Object.entries(counts).map(([lista, votos]) => {
-                const pct = appState.voteLogs.length > 0 ? ((votos / appState.voteLogs.length) * 100).toFixed(1) + '%' : '0%';
-                return [lista, votos.toString(), pct];
+                const pct = anonymousTotal > 0 ? ((votos / anonymousTotal) * 100).toFixed(1) + '%' : '0%';
+                return [lista, Number(votos || 0).toString(), pct];
             });
 
             doc.autoTable({
@@ -1239,11 +1296,11 @@
 
                 box.innerHTML = `
                     <div class="flex justify-between items-center border-b pb-1.5">
-                        <span class="font-black text-slate-800 uppercase text-sm">Opción ${index + 1}</span>
+                        <span class="font-black text-slate-800 uppercase text-sm">Opción ${index + 1} · EDITAR</span>
                         <div class="flex items-center gap-2">
                             <label class="font-bold text-slate-600 text-[10px]">Color:</label>
                             <input type="color" value="${cand.color || '#0070BA'}" data-field="color" class="cand-input w-7 h-7 rounded cursor-pointer border-0">
-                            ${appState.candidates.length > 1 ? `<button type="button" onclick="removeCandidateList('${cand.id}')" class="text-rose-600 font-bold hover:text-rose-800 p-1 cursor-pointer"><i class="fa-solid fa-trash text-sm"></i></button>` : ''}
+                            ${appState.candidates.length > 1 ? `<button type="button" onclick="removeCandidateList('${cand.id}')" title="Eliminar lista que no participa" class="text-rose-600 font-bold hover:text-rose-800 p-1 cursor-pointer"><i class="fa-solid fa-trash text-sm"></i><span class="ml-1">Eliminar</span></button>` : ''}
                         </div>
                     </div>
 
@@ -1312,16 +1369,24 @@
                 const id = card.dataset.id;
                 const cand = appState.candidates.find(c => String(c.id) === String(id));
                 if (cand) {
+                    const previousName = String(cand.partyName || '').trim();
                     card.querySelectorAll('.cand-input').forEach(input => {
                         if (input.dataset.field) cand[input.dataset.field] = input.value.trim();
                     });
+                    const currentName = String(cand.partyName || '').trim();
+                    if (previousName && currentName && previousName !== currentName) {
+                        cand.partyAliases = Array.isArray(cand.partyAliases) ? cand.partyAliases : [];
+                        if (!cand.partyAliases.includes(previousName)) cand.partyAliases.push(previousName);
+                    }
                 }
             });
 
             localStorage.setItem('bue_candidates_config', JSON.stringify(appState.candidates));
             renderCandidateCards();
             renderAdminCandidatesEditor();
-            alert('¡Cambios guardados con éxito!');
+            renderEscrutinioPanel();
+            scheduleCloudConfigSave();
+            alert('¡Cambios guardados! Los gráficos ya muestran los nombres actualizados y conservan los votos anteriores.');
         };
 
         window.addNewCandidateList = function() {
@@ -1339,6 +1404,7 @@
             localStorage.setItem('bue_candidates_config', JSON.stringify(appState.candidates));
             renderAdminCandidatesEditor();
             renderCandidateCards();
+            renderEscrutinioPanel();
         };
 
         window.removeCandidateList = function(id) {
@@ -1347,6 +1413,7 @@
                 localStorage.setItem('bue_candidates_config', JSON.stringify(appState.candidates));
                 renderAdminCandidatesEditor();
                 renderCandidateCards();
+                renderEscrutinioPanel();
             }
         };
 
@@ -1450,27 +1517,17 @@
 
             // REGISTRAR DNI COMO VOTADO Y REGISTRAR LOG DE VOTO
             appState.votedDNIs.push(dni);
-            const logEntry = {
-                dni: dni,
-                nombre: voterName,
-                lista: listaElegida,
-                timestamp: timestamp,
-                hash: hash
-            };
-            appState.voteLogs.push(logEntry);
+            // Dos registros independientes: participación nominal y voto anónimo.
+            appState.voteLogs.push({ dni: dni, nombre: voterName, timestamp: timestamp, hash: hash });
+            appState.anonymousVotes.push({ fecha: timestamp, lista: listaElegida });
 
             localStorage.setItem('bue_voted_dnis', JSON.stringify(appState.votedDNIs));
             localStorage.setItem('bue_vote_logs', JSON.stringify(appState.voteLogs));
+            localStorage.setItem('bue_anonymous_votes', JSON.stringify(appState.anonymousVotes));
 
-            const votePayload = {
-                dni: dni,
-                nombre: voterName,
-                lista: listaElegida,
-                timestamp: new Date().toISOString(),
-                hash: hash
-            };
-
-            sendToGoogleSheets(votePayload);
+            const timestampISO = new Date().toISOString();
+            sendToGoogleSheets({ action: 'participation', dni: dni, nombre: voterName, timestamp: timestampISO, hash: hash });
+            sendToGoogleSheets({ action: 'anonymousVote', lista: listaElegida, timestamp: timestampISO });
             appState.globalVoteCounts = null; appState.globalVoteTotal = undefined;
 
             document.getElementById('receipt-hash').textContent = hash;
@@ -1521,52 +1578,33 @@
 
         function sendToGoogleSheets(payload) {
             if (!appState.sheetsUrl) {
-                console.warn('Google Sheets no está configurado. El voto quedó guardado localmente.');
+                console.warn('Google Sheets no está configurado. El registro quedó guardado localmente.');
                 return;
             }
-
-            // Envío mediante formulario HTML a un iframe oculto. Evita depender
-            // de la lectura CORS de la respuesta de Apps Script.
-            let iframe = document.getElementById('google-sheets-submit-frame');
+            const frameName = 'google-sheets-submit-frame-' + String(payload.action || 'default');
+            let iframe = document.getElementById(frameName);
             if (!iframe) {
                 iframe = document.createElement('iframe');
-                iframe.name = 'google-sheets-submit-frame';
-                iframe.id = 'google-sheets-submit-frame';
+                iframe.name = frameName;
+                iframe.id = frameName;
                 iframe.style.display = 'none';
                 document.body.appendChild(iframe);
             }
-
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = appState.sheetsUrl;
             form.target = iframe.name;
             form.acceptCharset = 'UTF-8';
             form.style.display = 'none';
-
-            const fields = {
-                dni: payload.dni,
-                nombre: payload.nombre,
-                lista: payload.lista,
-                timestamp: payload.timestamp
-            };
-            Object.entries(fields).forEach(([name, value]) => {
+            Object.entries(payload).forEach(([name, value]) => {
                 const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = name;
-                input.value = String(value ?? '');
+                input.type = 'hidden'; input.name = name; input.value = String(value ?? '');
                 form.appendChild(input);
             });
-
             document.body.appendChild(form);
-            try {
-                form.submit();
-                console.info('Formulario de voto enviado al endpoint de Google Apps Script.');
-            } catch (error) {
-                console.error('No se pudo enviar el voto a Google Sheets:', error);
-                alert('No se pudo enviar el registro a Google Sheets. El voto quedó guardado en esta computadora.');
-            } finally {
-                setTimeout(() => form.remove(), 3000);
-            }
+            try { form.submit(); }
+            catch (error) { console.error('No se pudo enviar el registro a Google Sheets:', error); }
+            finally { setTimeout(() => form.remove(), 2500); }
         }
 
         window.processPadronText = function() {
@@ -1893,11 +1931,12 @@
 
         function submitCloudForm(fields) {
             if (!appState.sheetsUrl) return;
-            let iframe = document.getElementById('google-sheets-submit-frame');
+            const frameName = 'google-sheets-submit-frame-' + String(payload.action || 'default');
+            let iframe = document.getElementById(frameName);
             if (!iframe) {
                 iframe = document.createElement('iframe');
-                iframe.name = 'google-sheets-submit-frame';
-                iframe.id = 'google-sheets-submit-frame';
+                iframe.name = frameName;
+                iframe.id = frameName;
                 iframe.style.display = 'none';
                 document.body.appendChild(iframe);
             }
@@ -1922,6 +1961,10 @@
             const callbackName = 'bueCloudCallback_' + Date.now() + '_' + Math.floor(Math.random()*10000);
             const script = document.createElement('script');
             const separator = appState.sheetsUrl.includes('?') ? '&' : '?';
+            const adminPanel = document.getElementById('admin-panel-modal');
+            const isAdminOpen = adminPanel && !adminPanel.classList.contains('hidden');
+            const action = isAdminOpen ? 'adminState' : 'state';
+            const pin = isAdminOpen ? (appState.adminAccessLevel === 'superior' ? '5353' : '1234') : '';
             window[callbackName] = function(data) {
                 try { applyCloudState(data); }
                 catch (e) { console.error('Error aplicando sincronización:', e); }
@@ -1931,7 +1974,7 @@
                 setCloudSyncStatus('No se pudo consultar Google Sheets. Revise la URL y la implementación.', 'error');
                 delete window[callbackName]; script.remove();
             };
-            script.src = appState.sheetsUrl + separator + 'action=state&callback=' + callbackName + '&_=' + Date.now();
+            script.src = appState.sheetsUrl + separator + 'action=' + action + (pin ? '&pin=' + encodeURIComponent(pin) : '') + '&callback=' + callbackName + '&_=' + Date.now();
             document.head.appendChild(script);
         }
 
@@ -1972,6 +2015,16 @@
             if (Array.isArray(data.votedDNIs)) {
                 appState.votedDNIs = data.votedDNIs.map(String);
                 nativeStorageSetItem('bue_voted_dnis', JSON.stringify(appState.votedDNIs));
+            }
+            if (data.participationTotal !== undefined) appState.globalParticipationTotal = Number(data.participationTotal || 0);
+            if (Array.isArray(data.participationRecords)) {
+                appState.voteLogs = data.participationRecords.map(v => ({ dni: String(v.dni || ''), nombre: String(v.nombre || ''), timestamp: String(v.fecha || ''), hash: 'REGISTRO DE PARTICIPACIÓN' }));
+                appState.globalParticipationTotal = appState.voteLogs.length;
+                nativeStorageSetItem('bue_vote_logs', JSON.stringify(appState.voteLogs));
+            }
+            if (Array.isArray(data.anonymousVotes)) {
+                appState.anonymousVotes = data.anonymousVotes.map(v => ({ fecha: String(v.fecha || ''), lista: String(v.lista || '') }));
+                nativeStorageSetItem('bue_anonymous_votes', JSON.stringify(appState.anonymousVotes));
             }
             if (data.voteCounts && typeof data.voteCounts === 'object') {
                 appState.globalVoteCounts = data.voteCounts;
