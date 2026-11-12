@@ -586,7 +586,7 @@
             enteredVoterName: '',
             selectedCandidate: null,
             adminPIN: localStorage.getItem('bue_admin_pin') || '1234',
-            sheetsUrl: localStorage.getItem('bue_sheets_url') || '',
+            sheetsUrl: localStorage.getItem('bue_sheets_url') || 'https://script.google.com/macros/s/AKfycbww3OvkGDbXy6xrc7aBe9lS9oCde7JaEc41fy3YzHdq82hKw22FuVU_WX19S4WanIST/exec',
             schoolLogo: localStorage.getItem('bue_school_logo') || 'logo transp - copia.jpg',
             schoolName: localStorage.getItem('bue_school_name') || 'Colegio Secundario de Artes N° 49 • Tilcara',
             schoolColors: JSON.parse(localStorage.getItem('bue_school_colors') || '{"primary":"#0070BA","header":"#0062a8","accent":"#e63946"}'),
@@ -1499,7 +1499,7 @@
             else localStorage.removeItem('bue_sheets_url');
             updateSheetsConnectionStatus();
             alert(url
-                ? 'URL de Google Sheets guardada. Los próximos votos se enviarán a la planilla.'
+                ? 'URL de Google Sheets guardada. Realice un voto de prueba y verifique las dos pestañas en la planilla.'
                 : 'Conexión eliminada. Los votos seguirán guardándose localmente.');
         };
 
@@ -1507,7 +1507,7 @@
             const status = document.getElementById('sheets-connection-status');
             if (!status) return;
             if (appState.sheetsUrl) {
-                status.textContent = 'URL configurada. Los próximos votos se enviarán a Google Sheets.';
+                status.textContent = 'URL guardada. La recepción debe comprobarse con un voto de prueba en Google Sheets.';
                 status.className = 'text-[11px] font-bold text-emerald-700';
             } else {
                 status.textContent = 'Sin conexión configurada. Los votos se guardan localmente.';
