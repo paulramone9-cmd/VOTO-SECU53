@@ -129,7 +129,7 @@
                     <img id="school-logo-img" src="logo transp - copia.jpg" alt="Logo Colegio" onerror="this.onerror=null; this.src='https://placehold.co/100x100/0062a8/ffffff?text=ESC';" class="max-w-full max-h-full object-contain">
                 </div>
                 <div class="flex flex-col justify-center">
-                    <span class="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-sky-200 block leading-tight mb-0.5">Colegio Secundario de Artes N° 49 • Tilcara</span>
+                    <span id="school-name-header" class="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-sky-200 block leading-tight mb-0.5">Colegio Secundario de Artes N° 49 • Tilcara</span>
                     <h1 class="text-base sm:text-lg md:text-xl font-black uppercase tracking-tight leading-tight">Elecciones Centro de Estudiantes</h1>
                 </div>
             </div>
@@ -259,7 +259,7 @@
         <footer class="bg-slate-200 border-t border-slate-300 px-4 py-2.5 flex justify-between items-center text-xs font-bold text-slate-600">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-circle-info text-bue-blue"></i>
-                <span>Mesa N° 1 • Col. Sec. de Artes N° 49 (Tilcara)</span>
+                <span id="school-name-footer">Mesa N° 1 • Col. Sec. de Artes N° 49 (Tilcara)</span>
             </div>
             
             <div class="flex items-center gap-3">
@@ -326,7 +326,7 @@
                     </div>
                     <div>
                         <h2 class="text-xl font-black uppercase text-slate-800">Panel Autoridades y Administración</h2>
-                        <span class="text-xs text-slate-500 font-bold">Colegio Secundario de Artes N° 49 • Control de Escrutinio y Padrón</span>
+                        <span id="school-name-admin" class="text-xs text-slate-500 font-bold">Colegio Secundario de Artes N° 49 • Control de Escrutinio y Padrón</span>
                     </div>
                 </div>
                 <button type="button" onclick="closeAdminPanel()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-lg text-sm uppercase cursor-pointer">
@@ -353,6 +353,28 @@
                         <label class="block text-[10px] font-black uppercase text-sky-800 mb-1">Nombre de Archivo / URL Logo:</label>
                         <input type="text" id="school-logo-url-input" onchange="updateSchoolLogoUrl(this.value)" placeholder="logo transp - copia.jpg" class="w-full p-2 border rounded text-xs font-mono">
                     </div>
+                </div>
+
+                <div class="pt-3 border-t border-sky-200 space-y-3">
+                    <h4 class="font-black text-xs uppercase text-sky-900"><i class="fa-solid fa-palette mr-1"></i> Identidad visual de la aplicación</h4>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-sky-800 mb-1">Nombre del colegio / institución:</label>
+                        <input type="text" id="school-name-input" placeholder="Nombre del colegio" class="w-full p-2 border rounded text-xs font-bold">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <label class="text-[10px] font-black uppercase text-sky-800">Color principal
+                            <input type="color" id="school-primary-color" class="block w-full h-10 mt-1 cursor-pointer">
+                        </label>
+                        <label class="text-[10px] font-black uppercase text-sky-800">Color de cabecera
+                            <input type="color" id="school-header-color" class="block w-full h-10 mt-1 cursor-pointer">
+                        </label>
+                        <label class="text-[10px] font-black uppercase text-sky-800">Color de acento
+                            <input type="color" id="school-accent-color" class="block w-full h-10 mt-1 cursor-pointer">
+                        </label>
+                    </div>
+                    <button type="button" onclick="saveSchoolAppearance()" class="bg-sky-700 hover:bg-sky-800 text-white font-bold py-2 px-4 rounded text-xs uppercase cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar nombre y colores
+                    </button>
                 </div>
 
                 <div class="pt-2 border-t border-sky-200 space-y-3">
@@ -493,9 +515,10 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white p-4 rounded-lg border border-slate-300 space-y-2">
                         <span class="text-xs font-black uppercase text-slate-700 block">Opción 1: Archivo PDF, Excel o CSV</span>
+                        <p class="text-[11px] text-slate-500">El padrón 2026 de Bachiller y Técnicos ya está integrado. También podés importar Excel con varias hojas, aunque los encabezados estén desplazados o la columna DNI figure como OBSERVACIÓN. Se admiten PDF y CSV.</p>
                         <input type="file" id="padron-file-input" accept=".pdf, .xlsx, .xls, .csv" class="text-xs text-slate-600 w-full">
                         <button type="button" onclick="processPadronFile()" class="w-full bg-sky-700 text-white font-bold py-2 rounded text-xs uppercase hover:bg-sky-800 flex items-center justify-center gap-1.5 cursor-pointer">
-                            <i class="fa-solid fa-file-arrow-up"></i> Cargar PDF / Excel
+                            <i class="fa-solid fa-file-arrow-up"></i> Cargar Padrón
                         </button>
                     </div>
 
@@ -544,6 +567,8 @@
             adminPIN: localStorage.getItem('bue_admin_pin') || '1234',
             sheetsUrl: localStorage.getItem('bue_sheets_url') || 'https://script.google.com/macros/s/AKfycbx65DkErxd6Ta8-f9lOLrgz-zVPpttDBCoQKR7dZqKeq7ymdVqu6Z1XZhTrjI8FS4LS/exec',
             schoolLogo: localStorage.getItem('bue_school_logo') || 'logo transp - copia.jpg',
+            schoolName: localStorage.getItem('bue_school_name') || 'Colegio Secundario de Artes N° 49 • Tilcara',
+            schoolColors: JSON.parse(localStorage.getItem('bue_school_colors') || '{"primary":"#0070BA","header":"#0062a8","accent":"#e63946"}'),
             autoridades: JSON.parse(localStorage.getItem('bue_autoridades_list') || JSON.stringify([
                 { cargo: 'Presidente de Mesa', nombre: '' },
                 { cargo: 'Director/a', nombre: '' },
@@ -576,8 +601,89 @@
             ]))
         };
 
+
+        // PADRÓN INICIAL 2026: integrado desde los dos Excel proporcionados (todas sus hojas).
+        const PADRON_INICIAL_2026 = [{"dni":"53125115","nombre":"ACOSTA ALEJANDRA GRACIELA"},{"dni":"53124241","nombre":"ALMAZAN JAZMIN LUCIANA"},{"dni":"52279636","nombre":"BARTOLINI TIZIANO NAIM"},{"dni":"96150486","nombre":"BUITRAGO MEDINA VALERY GISELL"},{"dni":"53124832","nombre":"BUSTAMANTE MARÍA DEL MILAGRO"},{"dni":"52279815","nombre":"CASO LOURDES SOFIA"},{"dni":"52505670","nombre":"CASTILLO YÉSICA MAILÉN"},{"dni":"53276541","nombre":"CASTRO SANTIAGO GAEL"},{"dni":"53041034","nombre":"CAXAL CASTILLA GIULIANA AGOSTINA"},{"dni":"52277682","nombre":"CHURQUINA ANTEZANA AGUSTINA CANDELA"},{"dni":"53125674","nombre":"GOMEZ ISMAEL FERNANDO"},{"dni":"53124918","nombre":"JURADO TOMÁS GABRIEL"},{"dni":"52277720","nombre":"LOPEZ LUISANA VALENTINA"},{"dni":"53124991","nombre":"MACHACA LEANDRO JOAQUÍN"},{"dni":"53276401","nombre":"MAMANI JOSELYN NAOMI"},{"dni":"52722476","nombre":"MAMANI LUNA FLORENCIA"},{"dni":"52503951","nombre":"MAMANÍ ALEXANDER GABRIEL"},{"dni":"53124722","nombre":"MAMANÍ BENJAMIN FRANCISCO"},{"dni":"53124224","nombre":"MENDEZ NAHIARA DANA"},{"dni":"52502045","nombre":"PATAGUA GIMENEZ ALAN OSVALDO GAEL"},{"dni":"52574170","nombre":"RESEK VALLEJO ANTONIO ARAMIS"},{"dni":"52277664","nombre":"RODRIGUEZ XIOMARA ESTEFANIA NICOLE"},{"dni":"53124004","nombre":"SEGOVIA GÉNESIS ROMINA ALEJANDRA"},{"dni":"53124637","nombre":"SERRANO MARTINEZ PIA CONSTANZA"},{"dni":"52276671","nombre":"TEJERINA BENJAMIN ROBERTO"},{"dni":"52504579","nombre":"TENORIO EZEQUIEL ISAIAS"},{"dni":"56752983","nombre":"ZERDA GUADALUPE SOFÍA"},{"dni":"52275377","nombre":"ABAN LAUTARO LEONEL"},{"dni":"52057077","nombre":"ALDANA ARIANA MAGALI"},{"dni":"52275154","nombre":"BALDERRAMA CACHI ALEJANDRO OWEN"},{"dni":"52273718","nombre":"BONILLA CASTRO GUADALUPE ITARTI"},{"dni":"53125703","nombre":"CALISAYA THIAGO YAMIL"},{"dni":"52059220","nombre":"CANO CARLA ANTONELA"},{"dni":"52272506","nombre":"CANO MATIAS ANGEL GABRIEL"},{"dni":"52146560","nombre":"CESPEDES CANAVESIO KAIA LILEN"},{"dni":"52057894","nombre":"CONDORI * BRISA MARIA LUZ"},{"dni":"52146358","nombre":"DIAZ QUISPE ALEJANDRO ISAIAS"},{"dni":"51106151","nombre":"GARNICA SOFÍA VALENTINA"},{"dni":"51288051","nombre":"LE BIAN SUAREZ MAXIMO AGUSTIN"},{"dni":"49810552","nombre":"LEGUIZAMON SANTINO TIZIANO"},{"dni":"52277325","nombre":"MAMANI PABLO BENJAMIN"},{"dni":"52275032","nombre":"MARTINEZ IGNACIO DANIEL"},{"dni":"52057847","nombre":"MOLINA LUCIANA DEL CARMEN"},{"dni":"52146132","nombre":"ORTEGA KATHERINA MICHELLE"},{"dni":"51288668","nombre":"PEREIRA LÁZARO AGUSTIN"},{"dni":"50386317","nombre":"PEREZ TOMÁS OCTAVIO"},{"dni":"51462668","nombre":"RIVERO RODRIGO MAURO LIONEL"},{"dni":"52146065","nombre":"SALAZAR MATIAS BENJAMÍN"},{"dni":"51610502","nombre":"SUAREZ BIANCA MARIA DEL ROSARIO"},{"dni":"50575347","nombre":"VAZQUEZ LEDESMA FRANCISCO LUCIO"},{"dni":"51541594","nombre":"ZAMORA BRIANA XIOMARA"},{"dni":"50288603","nombre":"AGUAISOL * BIANCA NAHIARA"},{"dni":"50821736","nombre":"CABALLERO CAMILO ERNESTO"},{"dni":"50602487","nombre":"CAXAL THIAGO JONÁS"},{"dni":"50947693","nombre":"CORIMAYO VALENTINA XIOMARA"},{"dni":"50947705","nombre":"ESPINOZA PAREDES * OLIVIA ISABELLA"},{"dni":"49462391","nombre":"GASPAR RODRIGUEZ ARIADNA SAMIRA"},{"dni":"50950024","nombre":"GRANDE GERÓNIMO BAUTISTA"},{"dni":"51106157","nombre":"GUARI DANIEL ESTEBAN HUGO"},{"dni":"49785930","nombre":"HERRERA FIORELA ABRIL"},{"dni":"51108953","nombre":"HERRERA JAZMÍN MARYLIN YAMILE"},{"dni":"50238224","nombre":"LLALLI BURGOS JOSEFINA YAEL"},{"dni":"50949637","nombre":"MAMANI LUANA RENATA"},{"dni":"50575987","nombre":"MAMANI SOL NAHIR"},{"dni":"51031817","nombre":"MENDOZA GONZALEZ SANDY SOFÍA"},{"dni":"50821620","nombre":"ORIGUELA BÁRBARA ANTONELA"},{"dni":"50947796","nombre":"ROBLES FRANCISCO TOBÍAS"},{"dni":"50947501","nombre":"SANCHEZ SANTINO FERNANDO"},{"dni":"50821727","nombre":"SEQUEIRA JONATAN EDUARDO"},{"dni":"49967034","nombre":"SORUCO FACUNDO EMANUEL FABRIZIO"},{"dni":"50948482","nombre":"TENORIO ** MISAEL JEREMÍAS"},{"dni":"50574695","nombre":"VALDIVIA  * URIEL MAXIMILIANO"},{"dni":"50947931","nombre":"VASQUEZ DELFINA FABIOLA"},{"dni":"50408562","nombre":"ZALAZAR MALENA"},{"dni":"50574596","nombre":"CAMACHO MELODÍA DE LOS ANGELES"},{"dni":"49463116","nombre":"CHAVEZ MÁXIMILANO LEONIDAS"},{"dni":"49704871","nombre":"FARFAN BRENDA ISABEL"},{"dni":"49967441","nombre":"GUANCA IGNACIO LEONEL"},{"dni":"49704834","nombre":"HOYOS SOFIA ANGELA DEL VALLE"},{"dni":"49704947","nombre":"MAMANI MARIANELA JAZMIN"},{"dni":"49885963","nombre":"MAMANI MAURO AGUSTÍN"},{"dni":"49967123","nombre":"MAMANI, SOFIA ESMERALDA"},{"dni":"49640886","nombre":"MEDINA CANDELA EMILIA"},{"dni":"49227709","nombre":"OVEJERO SANTOS JAVIER MAXIMILIANO"},{"dni":"49966353","nombre":"QUISPE CELESTE VICTORIA"},{"dni":"49780970","nombre":"ROBLES, SANTIAGO TOMÁS"},{"dni":"49705951","nombre":"SANCHEZ ALEXIA NAHIR"},{"dni":"49463181","nombre":"SANTOS ANGEL GABRIEL FABIO"},{"dni":"50386122","nombre":"SEGOVIA PERLA MORENA"},{"dni":"50053741","nombre":"SUAREZ CARLA SOFÍA ABIGAIL"},{"dni":"49463110","nombre":"USTARES CLAROS SOFIA MILAGROS"},{"dni":"49282495","nombre":"APAZA TANIA ANTONELA EVELIN"},{"dni":"50386109","nombre":"BARRIONUEVO FLORENCIA MILAGROS"},{"dni":"49084348","nombre":"BILAN GARCIA PATRICIO MANUEL"},{"dni":"49462908","nombre":"CORONEL ROJAS ARACELI NAHIR"},{"dni":"49464495","nombre":"ESCALADA BÁRBARA ESTEFANÍA"},{"dni":"49021093","nombre":"FIGUEROA JAIME SERENA MERCEDES"},{"dni":"49022167","nombre":"GRAFION PABLO ALEJO BENJAMIN"},{"dni":"48144373","nombre":"GUERRERO JAVIER ORLANDO"},{"dni":"49109025","nombre":"LAMAS JUAN IGNACIO"},{"dni":"48141619","nombre":"LAMAS  MARTINEZ ANA PAULA"},{"dni":"49273106","nombre":"MARINO IBARRA LAUTARO ABEL"},{"dni":"48804066","nombre":"MIRANDA PATRICIO TOMÁS"},{"dni":"49109591","nombre":"PINTOS CABEZAS MARÍA VICTORIA"},{"dni":"49084416","nombre":"SEGOVIA GASTÓN OCTAVIO"},{"dni":"48141539","nombre":"VELASQUEZ ERIKA  GRACIELA"},{"dni":"49463126","nombre":"ZUTARA BÁRBARA JOSEFINA"},{"dni":"49331055","nombre":"ZAMBRANO DONATO VALENTINO"},{"dni":"53126727","nombre":"ARAPA TOMÁS EMMANUEL"},{"dni":"53124394","nombre":"AGUAYO TIZIANO ISAAC"},{"dni":"52504686","nombre":"BENITEZ NAHIARA JOSEFINA"},{"dni":"53124759","nombre":"CAMPERO XIOMARA MARGARITA"},{"dni":"52506825","nombre":"CARRILLO MAITE TATIANA"},{"dni":"52276608","nombre":"CAYO MAURICIO DANIEL"},{"dni":"53124944","nombre":"CHAVES LUIS DAVID"},{"dni":"53276904","nombre":"CONDORI GUTIERREZ DYLAN FRANCISCO"},{"dni":"53276067","nombre":"CRUZ GALVAN ELUNEY ALEJANDRA"},{"dni":"52275964","nombre":"FERNANDEZ VALENTINO IAN"},{"dni":"52505022","nombre":"GARECA AINARA MARIEL"},{"dni":"52758509","nombre":"GARECA MAILEN GUADALUPE"},{"dni":"53124513","nombre":"GOMEZ SOL VANESA"},{"dni":"53276048","nombre":"MARTINEZ BRITO LAUTARO EZEQUIEL"},{"dni":"53278230","nombre":"MEJIAS JEREMÍAS EMMANUEL"},{"dni":"52502428","nombre":"PAREDES ULISES ALEJANDRO"},{"dni":"53276520","nombre":"RAMOS MATEO TIZIANO XAVIER"},{"dni":"52277491","nombre":"DNI DUPLICADO - VERIFICAR EN PADRÓN ORIGINAL"},{"dni":"52899192","nombre":"RODRIGUEZ VALENTINO HUGO"},{"dni":"53124289","nombre":"SAJAMA ORIANA MORENA JAEL"},{"dni":"53126786","nombre":"SAJAMA RODRIGO ARIEL"},{"dni":"52504817","nombre":"TEJERINA DYLAN XAVIER DANILO"},{"dni":"52503970","nombre":"VAZQUEZ ELENA MORA"},{"dni":"52503344","nombre":"YANOS FELIPE EDUARDO"},{"dni":"53125749","nombre":"YUGRA VALENTINA"},{"dni":"50057195","nombre":"DNI DUPLICADO - VERIFICAR EN PADRÓN ORIGINAL"},{"dni":"52059287","nombre":"ARMELLA GASTON FERNANDO"},{"dni":"50821663","nombre":"CALDERON BASTIAN TAHIEL"},{"dni":"51462699","nombre":"CRUZ ARACELI SOLANGE"},{"dni":"52275197","nombre":"DIAZ MAXIMO LEONARDO JORGE"},{"dni":"51106561","nombre":"ERAZO EZEQUIEL RICARDO"},{"dni":"52057823","nombre":"FARFAN PIA SOLANGE"},{"dni":"51541730","nombre":"GOMEZ BENJAMIN THIAGO"},{"dni":"51288027","nombre":"GOMEZ LUNA CARHUE"},{"dni":"51542904","nombre":"GUTIERREZ VICTORIA LILIAA"},{"dni":"52059291","nombre":"GUZMAN CHARA EMMA JOSEFINA"},{"dni":"51288661","nombre":"LLAMPA NADIR ANETTE"},{"dni":"51146344","nombre":"LLANOS GONZALES CANDELA ARACELI"},{"dni":"51542773","nombre":"MARTINEZ ARISPE TEO SANTIAGO"},{"dni":"50997560","nombre":"MATUS SELENA LUCIANA"},{"dni":"52057617","nombre":"MEJIAS SANTIAGO BENJAMIN"},{"dni":"52057877","nombre":"MORALES ARIAN RONALDO"},{"dni":"51346362","nombre":"NINA ZAIN EMANUEL INTI"},{"dni":"52150015","nombre":"ROCHA CAMPOS ZOE SALOMÉ"},{"dni":"52272290","nombre":"SAJAMA TIAGO ABIMAEL"},{"dni":"51374475","nombre":"SANCHEZ EMANUEL ELIAS"},{"dni":"51288723","nombre":"SUBELZA * ERIC EDUARDO"},{"dni":"52059298","nombre":"VAZQUEZ LUIS ANDRES"},{"dni":"51288084","nombre":"VAZQUEZ PABLO ORESTES AGUSTÍN"},{"dni":"50950835","nombre":"ALBERTO PARRAGA LAUTARO EZEQUIEL"},{"dni":"50947725","nombre":"BOLIVAR TIZIANO DAVID"},{"dni":"51288630","nombre":"BORDONES ANGELES MALENA"},{"dni":"51106015","nombre":"CACHIZUMBA * SOFÍA VALENTINA"},{"dni":"50386840","nombre":"CASEREZ VILLALBA FABRICIO"},{"dni":"50575646","nombre":"COCA * JORGELINA CECILIA LUJÁN"},{"dni":"50751378","nombre":"ESPIRITU VILLAVICENCIO NADIA YOSELI"},{"dni":"50163364","nombre":"FLORES ORTIZ ABRIL ABIGAIL"},{"dni":"49462988","nombre":"HILARION LUCAS BENJAMÍN"},{"dni":"52059209","nombre":"LOPEZ OCTAVIO HUGO ALEJANDRO"},{"dni":"51080517","nombre":"MAMANI SUYAI SOFÍA LUISANA"},{"dni":"50575539","nombre":"MAMANI * MELANÍ AIMÉ"},{"dni":"49463347","nombre":"MORENO LIMACHE SANTINO BAUTISTA"},{"dni":"50947760","nombre":"PAREDES LUCIANA NÉLIDA"},{"dni":"49331053","nombre":"RIVERO BAUTISTA ALEJANDRO"},{"dni":"51106170","nombre":"SOTO ZERPA EMANUEL LUIS GABRIEL"},{"dni":"51108456","nombre":"TORRES BENICIO BENJAMÍN"},{"dni":"51106061","nombre":"VENTURA JOSÉ LEONARDO"},{"dni":"50340700","nombre":"AGÜERO DENIS MARTÍN ALEJANDRO"},{"dni":"50057404","nombre":"ALARCON ROMERO RUTH ESTHER"},{"dni":"46596251","nombre":"ENTRAMBASAGUAS FACUNDO LEONEL"},{"dni":"49641937","nombre":"GONZALEZ HÉCTOR NICOLAS"},{"dni":"51106806","nombre":"MAMANI JORGE CAMILO YACHAJ"},{"dni":"50386860","nombre":"MAMANI THIAGO VALENTIN"},{"dni":"50382102","nombre":"NOTARIO, AMBAR ESMERALDA"},{"dni":"49463129","nombre":"ORTEGA WALTER LUCIANO"},{"dni":"49641440","nombre":"PAREDES EMILCE MICAELA"},{"dni":"49967116","nombre":"PAZ ALVARO RODOLFO"},{"dni":"49704813","nombre":"RIOJA JOAQUIN RUBÉN"},{"dni":"49463057","nombre":"RODRIGUEZ ERIC BENJAMÍN"},{"dni":"49331540","nombre":"SEDAN MACARENA DEL MILAGRO"},{"dni":"50385522","nombre":"VILTE ISAAC SALVADOR"},{"dni":"49641642","nombre":"ZAMBRANO VOLTERRI EMILIANO GABRIEL"},{"dni":"49227898","nombre":"CARLOS YULIANA SOFÍA"},{"dni":"49227964","nombre":"FLORES LEONEL ARMANDO"},{"dni":"48142798","nombre":"FLORES LAURA AGUSTINA"},{"dni":"49084344","nombre":"LOZANO GUADALUPE MARTINA CANDELA"},{"dni":"48832783","nombre":"LUCERO BENITEZ DANA ABIGAIL"},{"dni":"49463037","nombre":"NANZER SOTO ALEXIA MARIA NAHIARA"},{"dni":"48909089","nombre":"OLIVERA SOLAR LUCIANO SEBASTIAN"},{"dni":"49084207","nombre":"ORTEGA  * FLORENCIA MILAGROS"},{"dni":"49084279","nombre":"PATAGUA GUTIERREZ MALENA JAZMÍN"},{"dni":"48955322","nombre":"QUIROGA NAYLA MORENA"},{"dni":"48277184","nombre":"ROBLES MORENA"},{"dni":"4910907","nombre":"SOTO TIAGO GUSTAVO ARIEL"},{"dni":"49331098","nombre":"VENTURA LAUTARO TOMAS"},{"dni":"49463103","nombre":"VILLA ROCÍO AYLEN"},{"dni":"49022665","nombre":"ZAMBRANA DANIELA ANTONELA DEL MILAGRO"},{"dni":"48955284","nombre":"ZAMBRANO JESÚS DANIEL"}];
+        const PADRON_DNI_DUPLICADOS = {"52277491":["ROBLES GUADALUPE ESPERANZA","ZAMBRANO MÍA SELENA MILAGROS"],"50057195":["AMANTE THIAGO","AMANTE DANIEL AGUSTIN"]};
+
+        // Fusionar el padrón inicial con los datos ya guardados, sin borrar registros existentes.
+        // Si la autoridad borra expresamente el padrón, no se vuelve a cargar automáticamente.
+        if (localStorage.getItem('bue_padron_seed_disabled') !== '1') {
+            appState.padron = Array.from(new Set([
+                ...PADRON_INICIAL_2026.map(registro => String(registro.dni)),
+                ...(appState.padron || []).map(dni => String(dni))
+            ]));
+            appState.padronNames = appState.padronNames || {};
+            PADRON_INICIAL_2026.forEach(registro => {
+                if (!appState.padronNames[registro.dni] || String(registro.nombre).includes('DUPLICADO')) {
+                    appState.padronNames[registro.dni] = registro.nombre;
+                }
+            });
+            Object.keys(PADRON_DNI_DUPLICADOS).forEach(dni => {
+                appState.padronNames[dni] = 'DNI DUPLICADO - VERIFICAR EN PADRÓN ORIGINAL';
+            });
+            localStorage.setItem('bue_padron', JSON.stringify(appState.padron));
+            localStorage.setItem('bue_padron_names', JSON.stringify(appState.padronNames));
+        }
+
         let barChartInstance = null;
         let pieChartInstance = null;
+
+        function applySchoolAppearance() {
+            const name = appState.schoolName || 'Institución educativa';
+            const headerName = document.getElementById('school-name-header');
+            const footerName = document.getElementById('school-name-footer');
+            const adminName = document.getElementById('school-name-admin');
+            if (headerName) headerName.textContent = name;
+            if (footerName) footerName.textContent = `Mesa N° 1 • ${name}`;
+            if (adminName) adminName.textContent = `${name} • Control de Escrutinio y Padrón`;
+
+            const colors = appState.schoolColors || {};
+            const primary = colors.primary || '#0070BA';
+            const header = colors.header || '#0062a8';
+            const accent = colors.accent || '#e63946';
+            let themeStyle = document.getElementById('custom-school-theme');
+            if (!themeStyle) {
+                themeStyle = document.createElement('style');
+                themeStyle.id = 'custom-school-theme';
+                document.head.appendChild(themeStyle);
+            }
+            themeStyle.textContent = `
+                header.bg-bue-header { background-color: ${header} !important; }
+                .bue-btn-primary, .bg-sky-700, .hover\\:bg-sky-800:hover { background-color: ${primary} !important; }
+                .text-bue-blue, .border-bue-blue { color: ${primary} !important; border-color: ${primary} !important; }
+                .bue-card:hover, .bue-card:active { border-color: ${primary} !important; }
+                .bue-btn-blank { background: linear-gradient(180deg, ${primary} 0%, ${header} 100%) !important; }
+                .bg-bue-header { background-color: ${header} !important; }
+                .text-sky-200 { color: #e0f2fe !important; }
+                .border-bue-darkBlue { border-color: ${primary} !important; }
+                .bue-frame { border-color: ${primary} !important; }
+                .bue-card-header { background-color: ${accent}; }
+            `;
+            const nameInput = document.getElementById('school-name-input');
+            const primaryInput = document.getElementById('school-primary-color');
+            const headerInput = document.getElementById('school-header-color');
+            const accentInput = document.getElementById('school-accent-color');
+            if (nameInput) nameInput.value = appState.schoolName;
+            if (primaryInput) primaryInput.value = primary;
+            if (headerInput) headerInput.value = header;
+            if (accentInput) accentInput.value = accent;
+        }
+
+        window.saveSchoolAppearance = function() {
+            const name = document.getElementById('school-name-input').value.trim();
+            if (!name) return alert('Ingrese el nombre del colegio.');
+            appState.schoolName = name;
+            appState.schoolColors = {
+                primary: document.getElementById('school-primary-color').value,
+                header: document.getElementById('school-header-color').value,
+                accent: document.getElementById('school-accent-color').value
+            };
+            localStorage.setItem('bue_school_name', appState.schoolName);
+            localStorage.setItem('bue_school_colors', JSON.stringify(appState.schoolColors));
+            applySchoolAppearance();
+            alert('Nombre del colegio y colores guardados correctamente.');
+        };
 
         function updateSchoolLogoUI() {
             const logoImg = document.getElementById('school-logo-img');
@@ -804,6 +910,7 @@
             renderEscrutinioPanel();
             renderAutoridadesEditor();
             updateSchoolLogoUI();
+            applySchoolAppearance();
             updatePadronStatusUI();
         };
 
@@ -989,7 +1096,7 @@
 
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.text('COLEGIO SECUNDARIO DE ARTES N° 49 - TILCARA', startTextX, 12);
+            doc.text((appState.schoolName || 'INSTITUCIÓN EDUCATIVA').toUpperCase(), startTextX, 12);
             doc.setFontSize(10);
             doc.text('ACTA OFICIAL DE ESCRUTINIO • ELECCIONES CENTRO DE ESTUDIANTES', startTextX, 19);
 
@@ -1077,6 +1184,8 @@
                 appState.padronNames = {};
                 localStorage.removeItem('bue_padron');
                 localStorage.removeItem('bue_padron_names');
+                localStorage.setItem('bue_padron_seed_disabled', '1');
+                updatePadronStatusUI();
                 alert('Padrón electoral borrado.');
             }
         };
@@ -1464,43 +1573,157 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                let dnisFound = [];
+                try {
+                    if (!window.XLSX) {
+                        return alert('No se pudo cargar el lector de Excel. Verifique su conexión e intente nuevamente.');
+                    }
 
-                workbook.SheetNames.forEach(sheetName => {
-                    const sheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
-                    json.forEach(row => {
-                        let rowDni = null;
-                        let rowName = '';
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+                    const imported = [];
+                    let detectedStructuredFormat = false;
+                    let sheetsRead = 0;
 
-                        row.forEach(cell => {
-                            if (cell) {
-                                const val = cell.toString().trim();
-                                if (/^\d{7,8}\b/.test(val)) {
-                                    rowDni = val;
-                                } else if (isNaN(val) && val.length > 2) {
-                                    rowName += ' ' + val;
-                                }
-                            }
+                    const normalizeHeader = value => String(value == null ? '' : value)
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z0-9]/gi, '')
+                        .toUpperCase();
+
+                    const normalizeDni = value => {
+                        if (value === null || value === undefined || value === '') return '';
+                        if (typeof value === 'number' && Number.isFinite(value)) {
+                            return String(Math.trunc(value));
+                        }
+                        const raw = String(value).trim();
+                        // Contempla números guardados como texto o en notación científica.
+                        const numeric = Number(raw);
+                        if (/^[\d.eE+-]+$/.test(raw) && Number.isFinite(numeric) && Number.isInteger(numeric)) {
+                            return String(Math.trunc(numeric));
+                        }
+                        return raw.replace(/\D/g, '');
+                    };
+
+                    workbook.SheetNames.forEach(sheetName => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(sheet, {
+                            header: 1,
+                            defval: '',
+                            raw: true,
+                            blankrows: false
+                        });
+                        if (!rows.length) return;
+
+                        // Buscar encabezados en cualquier fila: los Excel institucionales tienen
+                        // títulos y datos del curso antes de la tabla.
+                        const headerIndex = rows.findIndex(row => {
+                            const headers = row.map(normalizeHeader);
+                            return headers.includes('APELLIDOS') && headers.includes('NOMBRES');
                         });
 
-                        if (rowDni) {
-                            dnisFound.push(rowDni);
-                            if (rowName.trim()) {
-                                appState.padronNames[rowDni] = rowName.trim().toUpperCase();
+                        if (headerIndex >= 0) {
+                            detectedStructuredFormat = true;
+                            const headers = rows[headerIndex].map(normalizeHeader);
+                            const surnameCol = headers.indexOf('APELLIDOS');
+                            const namesCol = headers.indexOf('NOMBRES');
+
+                            // Primero se utiliza la columna rotulada DNI. Si no existe (por ejemplo,
+                            // si dice OBSERVACIÓN), se detecta por sus valores de 7 u 8 dígitos.
+                            let dniCol = headers.findIndex(header => header === 'DNI' || header.includes('DNI'));
+                            const dataRows = rows.slice(headerIndex + 1);
+
+                            const isValidDni = value => /^\d{7,8}$/.test(normalizeDni(value));
+                            const scoreColumn = colIndex => dataRows.reduce((score, row) =>
+                                score + (isValidDni(row[colIndex]) ? 1 : 0), 0);
+
+                            if (dniCol < 0 || scoreColumn(dniCol) === 0) {
+                                let bestColumn = -1;
+                                let bestScore = 0;
+                                const maxColumns = Math.max(...rows.map(row => row.length));
+                                for (let col = 0; col < maxColumns; col++) {
+                                    if (col === surnameCol || col === namesCol) continue;
+                                    const score = scoreColumn(col);
+                                    if (score > bestScore) {
+                                        bestScore = score;
+                                        bestColumn = col;
+                                    }
+                                }
+                                dniCol = bestColumn;
+                            }
+
+                            if (dniCol < 0) return;
+                            sheetsRead++;
+
+                            dataRows.forEach(row => {
+                                const dni = normalizeDni(row[dniCol]);
+                                if (!/^\d{7,8}$/.test(dni)) return;
+
+                                const surnames = String(row[surnameCol] == null ? '' : row[surnameCol]).trim();
+                                const names = String(row[namesCol] == null ? '' : row[namesCol]).trim();
+                                const fullName = `${surnames} ${names}`.trim().replace(/\s+/g, ' ');
+                                imported.push({ dni, fullName });
+                            });
+                        } else {
+                            // Compatibilidad con archivos anteriores sin encabezados identificables.
+                            rows.forEach(row => {
+                                let rowDni = '';
+                                const nameParts = [];
+                                row.forEach(cell => {
+                                    const val = String(cell == null ? '' : cell).trim();
+                                    const digits = normalizeDni(cell);
+                                    if (!rowDni && /^\d{7,8}$/.test(digits)) {
+                                        rowDni = digits;
+                                    } else if (val && isNaN(Number(val)) && val.length > 2) {
+                                        nameParts.push(val);
+                                    }
+                                });
+                                if (rowDni) imported.push({ dni: rowDni, fullName: nameParts.join(' ').trim() });
+                            });
+                        }
+                    });
+
+                    if (!imported.length) {
+                        return alert('No se encontraron DNI válidos. Verifique que las hojas tengan las columnas APELLIDOS, NOMBRES y DNI (o una columna con los DNI).');
+                    }
+
+                    let addedCount = 0;
+                    const namesByDni = {};
+                    const conflictingDnis = new Set();
+
+                    imported.forEach(({ dni, fullName }) => {
+                        if (!appState.padron.includes(dni)) {
+                            appState.padron.push(dni);
+                            addedCount++;
+                        }
+                        if (fullName) {
+                            const normalizedName = fullName.toUpperCase();
+                            if (namesByDni[dni] && namesByDni[dni] !== normalizedName) {
+                                conflictingDnis.add(dni);
+                            } else {
+                                namesByDni[dni] = normalizedName;
                             }
                         }
                     });
-                });
 
-                if (dnisFound.length > 0) {
-                    appState.padron = Array.from(new Set([...appState.padron, ...dnisFound]));
+                    Object.entries(namesByDni).forEach(([dni, fullName]) => {
+                        if (conflictingDnis.has(dni)) {
+                            appState.padronNames[dni] = 'DNI DUPLICADO - VERIFICAR EN PADRÓN ORIGINAL';
+                        } else if (!String(appState.padronNames[dni] || '').includes('DUPLICADO')) {
+                            appState.padronNames[dni] = fullName;
+                        }
+                    });
+
                     localStorage.setItem('bue_padron', JSON.stringify(appState.padron));
                     localStorage.setItem('bue_padron_names', JSON.stringify(appState.padronNames));
                     updatePadronStatusUI();
-                    alert(`Éxito: Se importaron ${dnisFound.length} alumnos con sus nombres.`);
+
+                    const warning = conflictingDnis.size
+                        ? `\nAtención: ${conflictingDnis.size} DNI aparecen asociados a más de un nombre. Quedaron marcados para revisión.`
+                        : '';
+                    alert(`¡Importación exitosa!\nHojas procesadas: ${sheetsRead}\nRegistros leídos: ${imported.length}\nDNI nuevos agregados: ${addedCount}${warning}`);
+                } catch (err) {
+                    console.error('Error al procesar el padrón:', err);
+                    alert('No se pudo procesar el archivo Excel/CSV. Verifique que sea un archivo válido y vuelva a intentarlo.');
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -1521,6 +1744,7 @@
             renderCandidateCards();
             updateStepProgress(1);
             updateSchoolLogoUI();
+            applySchoolAppearance();
         };
     </script>
 </body>
